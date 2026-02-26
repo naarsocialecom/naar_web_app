@@ -197,7 +197,7 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
     setQuantity((q) => (maxQuantity === 0 ? 0 : Math.min(Math.max(q, 1), maxQuantity)));
   }, [selectedVariantIndex, maxQuantity]);
 
-  const currency = selectedVariant?.currency ?? product.currency ?? "₹";
+  const currency = selectedVariant?.currency ?? product.currency ?? "INR ";
   const currentPrice =
     selectedVariant?.price ?? product.price ?? 0;
   const originalPrice =
@@ -399,10 +399,9 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
 
               <p className="text-lg text-black font-bold mb-2 md:mb-6">
                 Install Naar App to{" "}
-                <span className="font-extrabold">Get ₹200 Offer</span>
+                <span className="font-extrabold">Get INR 200 Offer</span>
               </p>
 
-              {/* DESIGN */}
               <div className="flex flex-col md:flex-row md:items-center items-start">
                 <div className="flex items-center gap-3 md:gap-4 md:min-w-[180px] w-full md:w-auto">
                   <svg
@@ -428,7 +427,6 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
 
               <div className="w-full h-px bg-gray-300" />
 
-              {/* CARE */}
               <div className="flex flex-col md:flex-row md:items-center items-start">
                 <div className="flex items-center gap-3 md:gap-4 md:min-w-[180px] w-full md:w-auto">
                   <svg
@@ -453,7 +451,6 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
               </div>
 
               <div className="w-full h-px bg-gray-300" />
-              {/* QUALITY */}
               <div className="flex flex-col md:flex-row md:items-center items-start">
                 <div className="flex items-center gap-3 md:gap-4 md:min-w-[180px] w-full md:w-auto">
                   <svg

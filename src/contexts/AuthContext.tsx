@@ -67,7 +67,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
       }
     } catch {
-      // Don't logout - keep token so user can proceed (new users may get 401 from userDetails)
       setUser(null);
     }
   }, []);

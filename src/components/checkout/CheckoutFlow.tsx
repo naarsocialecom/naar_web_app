@@ -32,7 +32,7 @@ function EstimateBreakdown({ estimate }: { estimate: CheckoutEstimate }) {
   const keys = estimate.labels
     ? Object.keys(estimate.labels).filter((k) => k !== "total")
     : Object.keys(DEFAULT_LABELS);
-  const currency = "₹";
+  const currency = "INR ";
   return (
     <div className="space-y-1.5 text-sm border-t border-[var(--border-light)] pt-3">
       {keys.map((key) => {
@@ -236,9 +236,7 @@ export default function CheckoutFlow({
       return;
     }
     setStep("address");
-    fetchAddresses().then(() => {
-      // If no addresses, AddressMap will show via the condition below
-    });
+    fetchAddresses();
   };
 
   const handleLoginSuccess = () => {
@@ -260,9 +258,7 @@ export default function CheckoutFlow({
     const cleanupOrder = async (orderId: string) => {
       try {
         await cancelOrder(orderId);
-      } catch {
-        // Best-effort cancel
-      }
+      } catch {}
       if (typeof window !== "undefined") {
         window.localStorage.removeItem(cacheKey);
       }
@@ -504,7 +500,7 @@ export default function CheckoutFlow({
             disabled={!selectedAddress || !estimate || loading}
             className="w-full py-3 rounded-full bg-[var(--accent)] text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
           >
-            {loading ? "Processing..." : `Pay ₹${estimate?.total ?? 0}`}
+            {loading ? "Processing..." : `Pay INR ${estimate?.total ?? 0}`}
           </button>
         </div>
       </div>

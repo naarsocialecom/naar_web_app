@@ -8,7 +8,7 @@ export interface ProductVariant {
   originalPriceWithTax?: number;
   currency?: string;
   inStock?: boolean;
-  quantity?: number; // max available for this variant
+  quantity?: number;
 }
 
 export interface ProductContent {

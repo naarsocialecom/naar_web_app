@@ -11,9 +11,7 @@ const MAP_CONTAINER_STYLE = { width: "100%", height: "100%" };
 
 interface AddressMapProps {
   userPhone: string;
-  /** When true, user record exists from getUserDetails - don't ask for name */
   hasUserRecord?: boolean;
-  /** Pre-filled name when user exists */
   userName?: string;
   onAddressCreated: (address: Address) => void;
   onBack?: () => void;
@@ -177,7 +175,6 @@ export default function AddressMap({
     setLoading(true);
     try {
       const { createUser, createAddress } = await import("@/lib/api-client");
-      // Create user first via Social API if no user record exists
       if (!hasUserRecord && nameInput.trim()) {
         await createUser({ name: nameInput.trim() });
         await onUserCreated?.();

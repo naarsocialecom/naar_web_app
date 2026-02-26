@@ -14,15 +14,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <nav className="bg-[rgb(63,240,255)] py-1 px-6 text-xs font-medium text-black overflow-hidden whitespace-nowrap">
           <div className="inline-flex animate-[marquee_12s_linear_infinite]">
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
           </div>
         </nav>
         <header className="fixed top-6 left-0 right-0 z-10 bg-transparent">

@@ -16,9 +16,7 @@ async function getAuthToken(): Promise<string | null> {
       localStorage.setItem("naar_id_token", fresh);
       return fresh;
     }
-  } catch {
-    // Firebase may not be ready or user signed out
-  }
+  } catch {}
   return localStorage.getItem("naar_id_token");
 }
 
