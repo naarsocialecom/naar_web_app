@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginModal from "./LoginModal";
@@ -140,6 +140,7 @@ export default function CheckoutFlow({
   onClose,
 }: CheckoutFlowProps) {
   const { isAuthenticated, user, loginPhone, login, requestOtp, refreshUser, logout } = useAuth();
+  const orderCacheRef = useRef<Record<string, { orderId: string; razorpayOrderId: string; expiryTime: string }>>({});
   const [step, setStep] = useState<Step>("idle");
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
@@ -230,6 +231,12 @@ export default function CheckoutFlow({
     if (selectedAddress?._id) fetchEstimate(selectedAddress._id);
   }, [selectedAddress?._id, fetchEstimate]);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      orderCacheRef.current = {};
+    }
+  }, [isAuthenticated]);
+
   const handleBuyNow = () => {
     if (!isAuthenticated) {
       setStep("login");
@@ -259,9 +266,7 @@ export default function CheckoutFlow({
       try {
         await cancelOrder(orderId);
       } catch {}
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem(cacheKey);
-      }
+      delete orderCacheRef.current[cacheKey];
     };
 
     try {
@@ -273,21 +278,13 @@ export default function CheckoutFlow({
       }
 
       let orderData: { orderId: string; razorpayOrderId: string; expiryTime: string };
-      const cached = typeof window !== "undefined" ? window.localStorage.getItem(cacheKey) : null;
+      const cached = orderCacheRef.current[cacheKey];
 
-      if (cached) {
-        const parsed = JSON.parse(cached) as { orderId: string; razorpayOrderId: string; expiryTime: string };
-        if (new Date() < new Date(parsed.expiryTime)) {
-          orderData = parsed;
-        } else {
-          orderData = await createOrder(estimate.quoteId);
-          window.localStorage.setItem(cacheKey, JSON.stringify(orderData));
-        }
+      if (cached && new Date() < new Date(cached.expiryTime)) {
+        orderData = cached;
       } else {
         orderData = await createOrder(estimate.quoteId);
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(cacheKey, JSON.stringify(orderData));
-        }
+        orderCacheRef.current[cacheKey] = orderData;
       }
 
       const { orderId, razorpayOrderId, expiryTime } = orderData;
@@ -330,9 +327,7 @@ export default function CheckoutFlow({
           },
         },
         handler: () => {
-          if (typeof window !== "undefined") {
-            window.localStorage.removeItem(cacheKey);
-          }
+          delete orderCacheRef.current[cacheKey];
           setStep("success");
           setLoading(false);
         },

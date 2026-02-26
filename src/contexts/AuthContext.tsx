@@ -53,7 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoginPhone(null);
     if (typeof window !== "undefined") {
       localStorage.removeItem("naar_id_token");
-      localStorage.removeItem("naar_login_phone");
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith("order_"))
+        .forEach((k) => localStorage.removeItem(k));
     }
   }, []);
 
@@ -77,9 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await verifyOtp(phoneWithCountryCode, otp);
       if (!res?.token) throw new Error("Invalid response");
       setLoginPhone(phoneWithCountryCode);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("naar_login_phone", phoneWithCountryCode);
-      }
       await signInWithToken(res.token);
       await persistToken();
       await refreshUser();
@@ -95,8 +94,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       if (typeof window === "undefined") return;
       const stored = localStorage.getItem("naar_id_token");
-      const storedPhone = localStorage.getItem("naar_login_phone");
-      if (storedPhone) setLoginPhone(storedPhone);
       if (stored) {
         setToken(stored);
         try {
@@ -104,6 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {
           logout();
         }
+      } else {
+        setLoginPhone(null);
       }
       setIsLoading(false);
     };
