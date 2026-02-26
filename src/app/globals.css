@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-light: #f8f8f8;
+  --bg-card: #ececea;
+  --text-dark: #000;
+  --text-muted: #787878;
+  --text-muted-light: #a1a1a1;
+  --accent: rgb(63, 240, 255);
+  --white: #fff;
+  --border-light: rgba(0, 0, 0, 0.1);
+}
+
+body {
+  background: var(--bg-light);
+  font-family: 'Lufga', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-11.111%); }
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
