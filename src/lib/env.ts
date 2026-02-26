@@ -1,4 +1,5 @@
 export const ENV = {
+  SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   API_URL_COMMERCIAL:
     process.env.NEXT_PUBLIC_API_URL_COMMERCIAL ||
     "https://devapi-commerce.naar.io/v1",

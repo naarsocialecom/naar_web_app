@@ -10,10 +10,8 @@ export async function GET(request: NextRequest) {
   if (phoneNumber.startsWith("91") && !phoneNumber.startsWith("+")) {
     phoneNumber = "+" + phoneNumber;
   }
-  const url = new URL(`${ENV.API_URL_SOCIAL}/verifyOtp`);
-  url.searchParams.set("phoneNumber", phoneNumber);
-  url.searchParams.set("otp", otp);
-  const res = await fetch(url.toString());
+  const targetUrl = `${ENV.API_URL_SOCIAL}/verifyOtp?phoneNumber=${phoneNumber}&otp=${otp}`;
+  const res = await fetch(targetUrl);
   const data = await res.json().catch(() => ({}));
   return NextResponse.json(data, { status: res.status });
 }
