@@ -186,8 +186,13 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
     ? getImageUrl(imgBase, imageFiles[selectedImage])
     : null;
 
-  const variants = product.variants || [];
+  const variantsRaw = product.variants || [];
   const getVariantQty = (v: ProductVariant) => v?.quantity ?? (v?.inStock !== false ? 99 : 0);
+  const variants = [...variantsRaw].sort((a, b) => {
+    const qtyA = getVariantQty(a);
+    const qtyB = getVariantQty(b);
+    return qtyB - qtyA;
+  });
   const defaultVariantIndex = variants.findIndex((v) => getVariantQty(v) > 0);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(
     defaultVariantIndex >= 0 ? defaultVariantIndex : 0
@@ -328,7 +333,8 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {variants.map((v, i) => {
-                      const inStock = v.inStock !== false;
+                      const variantQty = getVariantQty(v);
+                      const inStock = variantQty > 0;
                       const isSelected = selectedVariantIndex === i;
                       return (
                         <button
@@ -352,36 +358,38 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
                 </div>
               )}
 
-              <div className="flex items-center gap-4">
-                <p className="font-bold text-black">Quantity</p>
-                <div className="flex items-center border-2 border-[rgba(0,0,0,0.2)] rounded-lg overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    disabled={quantity <= 1}
-                    className="w-12 h-12 flex items-center justify-center bg-[#f8f8f8] hover:bg-[#ececea] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#f8f8f8] transition-colors"
-                    aria-label="Decrease quantity"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                    </svg>
-                  </button>
-                  <span className="w-12 h-12 flex items-center justify-center font-bold text-lg border-x border-[rgba(0,0,0,0.1)]">
-                    {quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
-                    disabled={quantity >= maxQuantity}
-                    className="w-12 h-12 flex items-center justify-center bg-[#f8f8f8] hover:bg-[#ececea] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#f8f8f8] transition-colors"
-                    aria-label="Increase quantity"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </button>
+              {maxQuantity > 0 && (
+                <div className="flex items-center gap-4">
+                  <p className="font-bold text-black">Quantity</p>
+                  <div className="flex items-center border-2 border-[rgba(0,0,0,0.2)] rounded-lg overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      disabled={quantity <= 1}
+                      className="w-12 h-12 flex items-center justify-center bg-[#f8f8f8] hover:bg-[#ececea] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#f8f8f8] transition-colors"
+                      aria-label="Decrease quantity"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                      </svg>
+                    </button>
+                    <span className="w-12 h-12 flex items-center justify-center font-bold text-lg border-x border-[rgba(0,0,0,0.1)]">
+                      {quantity}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
+                      disabled={quantity >= maxQuantity}
+                      className="w-12 h-12 flex items-center justify-center bg-[#f8f8f8] hover:bg-[#ececea] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#f8f8f8] transition-colors"
+                      aria-label="Increase quantity"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <button
                 type="button"
