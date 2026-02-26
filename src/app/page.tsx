@@ -8,7 +8,7 @@ export default function Home() {
         Browse our collection of handloom products.
       </p>
       <Link
-        href="/product/68602a4fa702a4fa379f1f64"
+        href="/product/697dcb8376228f3bbeca2cd5"
         className="inline-flex items-center justify-center py-4 px-8 rounded-full bg-[rgb(63,240,255)] text-black font-medium hover:opacity-90 transition-opacity"
       >
         View Sample Product

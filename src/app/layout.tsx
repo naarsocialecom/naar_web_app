@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </nav>
         <header className="fixed top-6 left-0 right-0 z-10 bg-transparent">
-          <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-center">
+          <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-center mt-6">
             <Link href="/" className="block h-8 w-auto">
               <img src="/logo.svg" alt="Naar" className="h-full w-auto" />
             </Link>

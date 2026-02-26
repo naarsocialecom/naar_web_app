@@ -10,7 +10,7 @@ const MAX_DESC_LENGTH = 150;
 
 function getImageUrl(imgBase: string, fileName: string): string {
   if (!imgBase || !fileName) return "";
-  return `${imgBase}${imgBase.endsWith("/") ? "" : "/"}${fileName}`;
+  return `${imgBase}${imgBase.endsWith("/") ? "" : "/uploads/products/"}${fileName}`;
 }
 
 function getVariantLabel(v: ProductVariant): string {
@@ -222,9 +222,9 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
     <div className="min-h-screen bg-[#f8f8f8] pt-20 pb-0">
       <header className="bg-[#f8f8f8] pt-8 pb-20">
         <div className="max-w-[1200px] mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="relative order-1">
-              <div className="relative w-full aspect-[575/601] rounded-xl overflow-hidden bg-white">
+              <div className="relative w-full aspect-[575/651] rounded-xl overflow-hidden bg-white">
                 {mainImageUrl ? (
                   <Image
                     src={mainImageUrl}
@@ -257,26 +257,30 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
                 </div>
               </div>
               {imageFiles.length > 1 && (
-                <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
-                  {imageFiles.slice(0, 5).map((fileName, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedImage(i)}
-                      className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-colors ${
-                        selectedImage === i
-                          ? "border-black bg-[#f8f8f8]"
-                          : "border-white bg-[#ececea]"
-                      }`}
-                    >
-                      <Image
-                        src={getImageUrl(imgBase, fileName)}
-                        alt=""
-                        width={56}
-                        height={56}
-                        className="object-cover w-full h-full"
-                      />
-                    </button>
-                  ))}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4">
+                  <div className="flex gap-2 overflow-x-auto justify-center bg-white backdrop-blur-md rounded-xl p-1">
+                    {imageFiles.slice(0, 5).map((fileName, i) => {
+                      const isActive = selectedImage === i;
+
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedImage(i)}
+                          className={`flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all duration-300 ease-in-out
+                      ${isActive ? "w-20 h-16 border-black shadow-md z-10" : "w-16 h-16 border-white opacity-80 hover:opacity-100"}
+                    `}
+                        >
+                          <Image
+                            src={getImageUrl(imgBase, fileName)}
+                            alt=""
+                            width={80}
+                            height={80}
+                            className="object-cover w-full h-full"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -391,15 +395,16 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
                 />
               )}
 
-              <p className="text-lg text-black font-bold">
+              <p className="text-lg text-black font-bold mb-2 md:mb-6">
                 Install Naar App to{" "}
                 <span className="font-extrabold">Get ₹200 Offer</span>
               </p>
 
-              <div className="space-y-3 pt-4">
-                <div className="flex items-start gap-3">
+              {/* MATERIAL */}
+              <div className="flex flex-col md:flex-row md:items-center items-start">
+                <div className="flex items-center gap-3 md:gap-4 md:min-w-[180px] w-full md:w-auto">
                   <svg
-                    className="w-5 h-5 mt-0.5 flex-shrink-0"
+                    className="w-4 h-4 text-black flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -407,21 +412,25 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"
+                      strokeWidth={1.7}
+                      d="M20 7l-8-4-8 4v10l8 4 8-4V7z"
                     />
                   </svg>
-                  <div>
-                    <p className="font-bold text-black">Design</p>
-                    <p className="text-[#787878] text-base font-medium">
-                      Compact foldable design
-                    </p>
-                  </div>
+                  <p className="text-md font-semibold text-black">Material</p>
                 </div>
-                <div className="h-px bg-[rgba(0,0,0,0.1)]" />
-                <div className="flex items-start gap-3">
+
+                <p className="text-md text-[#6e6e6e] font-medium mt-2 md:mt-0 md:ml-4">
+                  Premium four way stretch polyurethane
+                </p>
+              </div>
+
+              <div className="w-full h-px bg-gray-300" />
+
+              {/* CARE */}
+              <div className="flex flex-col md:flex-row md:items-center items-start">
+                <div className="flex items-center gap-3 md:gap-4 md:min-w-[180px] w-full md:w-auto">
                   <svg
-                    className="w-5 h-5 mt-0.5 flex-shrink-0"
+                    className="w-5 h-5 text-black flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -429,21 +438,24 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                      strokeWidth={1.7}
+                      d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"
                     />
                   </svg>
-                  <div>
-                    <p className="font-bold text-black">Care</p>
-                    <p className="text-[#787878] text-base font-medium">
-                      Hand wash separately in cold water
-                    </p>
-                  </div>
+                  <p className="text-md font-semibold text-black">Care</p>
                 </div>
-                <div className="h-px bg-[rgba(0,0,0,0.1)]" />
-                <div className="flex items-start gap-3">
+
+                <p className="text-md text-[#6e6e6e] font-medium mt-2 md:mt-0 md:ml-4">
+                  Hand wash cold, air dry
+                </p>
+              </div>
+
+              <div className="w-full h-px bg-gray-300" />
+              {/* WARRANTY */}
+              <div className="flex flex-col md:flex-row md:items-center items-start">
+                <div className="flex items-center gap-3 md:gap-4 md:min-w-[180px] w-full md:w-auto">
                   <svg
-                    className="w-5 h-5 mt-0.5 flex-shrink-0"
+                    className="w-5 h-5 text-black flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -451,22 +463,21 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+                      strokeWidth={1.7}
+                      d="M9 12l2 2 4-4"
                     />
                   </svg>
-                  <div>
-                    <p className="font-bold text-black">Quality</p>
-                    <p className="text-[#787878] text-base font-medium">
-                      Stitched for regular daily use.
-                    </p>
-                  </div>
+                  <p className="text-md font-semibold text-black">Warranty</p>
                 </div>
+
+                <p className="text-md text-[#6e6e6e] font-medium mt-2 md:mt-0 md:ml-4">
+                  Anti-peel and crack surface guarantee
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-12 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-12 w-full">
             {[
               {
                 icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
