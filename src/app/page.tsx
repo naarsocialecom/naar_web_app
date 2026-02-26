@@ -1,6 +1,19 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function Home() {
+  const router = useRouter();
+  const [productId, setProductId] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const id = productId.trim();
+    if (id) router.push(`/product/${id}`);
+  };
+
   return (
     <div className="min-h-screen bg-[#f8f8f8] flex flex-col items-center justify-center p-10">
       <h1 className="text-3xl font-bold mb-4">Welcome to Naar</h1>

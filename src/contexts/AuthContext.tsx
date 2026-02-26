@@ -45,6 +45,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   }, []);
 
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("naar_id_token");
+    }
+  }, []);
+
   const refreshUser = useCallback(async () => {
     try {
       const { getUserDetails } = await import("@/lib/api-client");
@@ -56,8 +64,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch {
       setUser(null);
+      logout();
     }
-  }, []);
+  }, [logout]);
 
   const login = useCallback(
     async (phoneWithCountryCode: string, otp: string) => {
@@ -70,14 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [persistToken, refreshUser]
   );
-
-  const logout = useCallback(() => {
-    setToken(null);
-    setUser(null);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("naar_id_token");
-    }
-  }, []);
 
   const requestOtp = useCallback(async (phoneWithCountryCode: string) => {
     await generateOtp(phoneWithCountryCode);

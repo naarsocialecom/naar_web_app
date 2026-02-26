@@ -11,6 +11,9 @@ const MAP_CONTAINER_STYLE = { width: "100%", height: "100%" };
 
 interface AddressMapProps {
   userPhone: string;
+  /** When true, user record exists from getUserDetails - don't ask for name */
+  hasUserRecord?: boolean;
+  /** Pre-filled name when user exists */
   userName?: string;
   onAddressCreated: (address: Address) => void;
   onBack?: () => void;
@@ -32,6 +35,7 @@ async function reverseGeocode(lat: number, lon: number): Promise<{ city: string;
 
 export default function AddressMap({
   userPhone,
+  hasUserRecord = false,
   userName = "",
   onAddressCreated,
   onBack,
@@ -149,8 +153,8 @@ export default function AddressMap({
   const handleCreateAddress = async () => {
     setError("");
     const line1 = addressLine.trim();
-    const fullName = userName || nameInput.trim();
-    if (!userName && !nameInput.trim()) {
+    const fullName = hasUserRecord ? (userName || "Customer") : nameInput.trim();
+    if (!hasUserRecord && !nameInput.trim()) {
       setError("Enter your name");
       return;
     }
@@ -169,7 +173,8 @@ export default function AddressMap({
     setLoading(true);
     try {
       const { createUser, createAddress } = await import("@/lib/api-client");
-      if (!userName && nameInput.trim()) {
+      // Create user first via Social API if no user record exists
+      if (!hasUserRecord && nameInput.trim()) {
         await createUser({ name: nameInput.trim() });
         await onUserCreated?.();
       }
@@ -319,7 +324,7 @@ export default function AddressMap({
         <div className="flex-shrink-0 p-4 pb-8 pt-5 bg-white rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
           <p className="text-xs text-[#787878] mb-4">Add your address</p>
           <div className="space-y-3 mb-4">
-            {!userName && (
+            {!hasUserRecord && (
               <div>
                 <label className="block text-sm font-semibold text-black mb-1.5">
                   Name <span className="text-red-500">*</span>
@@ -355,7 +360,7 @@ export default function AddressMap({
           <button
             type="button"
             onClick={handleCreateAddress}
-            disabled={loading || (!userName && !nameInput.trim()) || !addressLine.trim() || !hasNumber(addressLine)}
+            disabled={loading || (!hasUserRecord && !nameInput.trim()) || !addressLine.trim() || !hasNumber(addressLine)}
             className="w-full py-3.5 rounded-full bg-[rgb(63,240,255)] text-black font-bold text-[15px] disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
           >
             {loading ? "Saving..." : "Confirm & continue"}

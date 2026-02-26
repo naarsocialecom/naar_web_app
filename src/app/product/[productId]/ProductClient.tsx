@@ -603,15 +603,40 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
             </form>
           </div>
           <div className="h-px bg-white/15 mb-12" />
-          <Link href="/" className="inline-block">
-            <Image
-              src="/logo-footer.svg"
-              alt="Naar"
-              width={167}
-              height={60}
-              className="h-10 w-auto"
-            />
-          </Link>
+          <div className="flex flex-col gap-8">
+            <Link href="/" className="inline-block">
+              <Image
+                src="/logo-footer.svg"
+                alt="Naar"
+                width={167}
+                height={60}
+                className="h-10 w-auto"
+              />
+            </Link>
+            <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/70 hover:[&_a]:text-white [&_a]:transition-colors">
+              <a href="https://naar.io/privacy-policy" target="_blank" rel="noopener noreferrer">
+                Privacy Policy
+              </a>
+              <a href="https://naar.io/cookies-policy" target="_blank" rel="noopener noreferrer">
+                Cookie Policy
+              </a>
+              <a href="https://naar.io/shipping-delivery" target="_blank" rel="noopener noreferrer">
+                Shipping & Delivery Policy
+              </a>
+              <a href="https://naar.io/returns-refunds" target="_blank" rel="noopener noreferrer">
+                Refunds & Returns Policy
+              </a>
+              <a href="https://naar.io/terms-conditions" target="_blank" rel="noopener noreferrer">
+                Terms & Conditions
+              </a>
+              <a href="https://naar.io/warranties-liabilities" target="_blank" rel="noopener noreferrer">
+                Warranty & Liabilities Policy
+              </a>
+              <a href="https://naar.io/disclaimer" target="_blank" rel="noopener noreferrer">
+                Website Disclaimer
+              </a>
+            </nav>
+          </div>
         </div>
       </footer>
     </div>

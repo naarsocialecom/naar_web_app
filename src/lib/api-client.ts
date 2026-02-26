@@ -9,6 +9,16 @@ interface ApiOptions {
 
 async function getAuthToken(): Promise<string | null> {
   if (typeof window === "undefined") return null;
+  try {
+    const { getIdToken } = await import("@/lib/firebase");
+    const fresh = await getIdToken();
+    if (fresh) {
+      localStorage.setItem("naar_id_token", fresh);
+      return fresh;
+    }
+  } catch {
+    // Firebase may not be ready or user signed out
+  }
   return localStorage.getItem("naar_id_token");
 }
 
@@ -29,8 +39,9 @@ export async function apiClient<T = unknown>(
 
   if (auth) {
     const token = await getAuthToken();
-    if (token) {
-      headers["Authorization"] = token.replace(/^Bearer\s+/i, "").trim();
+    const cleanToken = token?.replace(/^Bearer\s+/i, "").trim();
+    if (cleanToken) {
+      headers["Authorization"] = cleanToken;
     }
   }
 

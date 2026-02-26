@@ -9,6 +9,7 @@ import {
   getCheckoutEstimate,
   createOrder,
   cancelOrder,
+  getUserDetails,
 } from "@/lib/api-client";
 import { ENV } from "@/lib/env";
 import type { Product, ProductVariant } from "@/types/product";
@@ -130,7 +131,7 @@ export default function CheckoutFlow({
   quantity,
   onClose,
 }: CheckoutFlowProps) {
-  const { isAuthenticated, user, login, requestOtp, refreshUser } = useAuth();
+  const { isAuthenticated, user, login, requestOtp, refreshUser, logout } = useAuth();
   const [step, setStep] = useState<Step>("idle");
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
@@ -149,21 +150,35 @@ export default function CheckoutFlow({
       const def = list.find((a) => (a as Record<string, unknown>).isDefault);
       if (def) setSelectedAddress(def as unknown as Address);
       else if (list.length) setSelectedAddress(list[0] as unknown as Address);
-    } catch {
+    } catch (err) {
       setAddresses([]);
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("401") || msg.toLowerCase().includes("unauthorized")) {
+        logout();
+        setStep("login");
+      }
     }
-  }, []);
+  }, [logout]);
 
   useEffect(() => {
     if (!initialized) {
       setInitialized(true);
-      if (!isAuthenticated) setStep("login");
-      else {
-        setStep("address");
-        fetchAddresses();
+      if (!isAuthenticated) {
+        setStep("login");
+        return;
       }
+      // Verify auth with user details before proceeding (handles expired/stale tokens)
+      getUserDetails()
+        .then(() => {
+          setStep("address");
+          fetchAddresses();
+        })
+        .catch(() => {
+          logout();
+          setStep("login");
+        });
     }
-  }, [initialized, isAuthenticated, fetchAddresses]);
+  }, [initialized, isAuthenticated, fetchAddresses, logout]);
 
   const fetchEstimate = useCallback(
     async (addressId: string) => {
@@ -180,13 +195,18 @@ export default function CheckoutFlow({
         });
         setEstimate(est);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to get estimate");
+        const msg = err instanceof Error ? err.message : "Failed to get estimate";
+        setError(msg);
         setEstimate(null);
+        if (msg.includes("401") || msg.toLowerCase().includes("unauthorized")) {
+          logout();
+          setStep("login");
+        }
       } finally {
         setLoading(false);
       }
     },
-    [productId, productVariantId, quantity]
+    [productId, productVariantId, quantity, logout]
   );
 
   useEffect(() => {
@@ -336,6 +356,7 @@ export default function CheckoutFlow({
     return (
       <AddressMap
         userPhone={user?.phoneNumber || ""}
+        hasUserRecord={!!user?.userId}
         userName={user?.name || user?.userName}
         onAddressCreated={handleAddressCreated}
         onBack={onClose}
@@ -460,9 +481,10 @@ export default function CheckoutFlow({
     return (
       <AddressMap
         userPhone={user?.phoneNumber || ""}
+        hasUserRecord={!!user?.userId}
         userName={user?.name || user?.userName}
         onUserCreated={refreshUser}
-        onAddressCreated={(addr) => {
+        onAddressCreated={(addr: Address) => {
           setAddresses((a) => [addr, ...a]);
           setSelectedAddress(addr);
           setStep("confirm");
@@ -482,7 +504,8 @@ export default function CheckoutFlow({
             </svg>
           </div>
           <h2 className="text-xl font-bold text-black mb-2">Order placed!</h2>
-          <p className="text-[var(--text-muted)] mb-4">Thank you for your order.</p>
+          <p className="text-[var(--text-muted)] mb-2">Thank you for your order.</p>
+          <p className="text-sm text-[var(--text-muted)] mb-4">You can track your order on the Naar app.</p>
           <button
             type="button"
             onClick={onClose}
