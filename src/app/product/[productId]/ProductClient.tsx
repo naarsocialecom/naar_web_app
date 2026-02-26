@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { Product, ProductVariant } from "@/types/product";
 import CheckoutFlow from "@/components/checkout/CheckoutFlow";
@@ -188,7 +187,11 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
     : null;
 
   const variants = product.variants || [];
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+  const getVariantQty = (v: ProductVariant) => v?.quantity ?? (v?.inStock !== false ? 99 : 0);
+  const defaultVariantIndex = variants.findIndex((v) => getVariantQty(v) > 0);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(
+    defaultVariantIndex >= 0 ? defaultVariantIndex : 0
+  );
   const selectedVariant = variants[selectedVariantIndex] ?? variants[0];
   const maxQuantity = selectedVariant?.quantity ?? (selectedVariant?.inStock !== false ? 99 : 0);
   const [quantity, setQuantity] = useState(1);
@@ -383,9 +386,14 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
               <button
                 type="button"
                 onClick={() => setShowCheckout(true)}
-                className="inline-flex items-center justify-center w-full py-4 px-6 rounded-full bg-[rgb(63,240,255)] text-black font-bold text-lg tracking-[-0.035em] hover:opacity-90 transition-opacity"
+                disabled={maxQuantity === 0}
+                className={`inline-flex items-center justify-center w-full py-4 px-6 rounded-full font-bold text-lg tracking-[-0.035em] transition-opacity ${
+                  maxQuantity === 0
+                    ? "bg-[#e0e0e0] text-[#888] cursor-not-allowed"
+                    : "bg-[rgb(63,240,255)] text-black hover:opacity-90"
+                }`}
               >
-                Buy Now
+                {maxQuantity === 0 ? "Sold Out" : "Buy Now"}
               </button>
               {showCheckout && (
                 <CheckoutFlow
@@ -603,7 +611,7 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
           </div>
           <div className="h-px bg-white/15 mb-12" />
           <div className="flex flex-col gap-8">
-            <Link href="/" className="inline-block">
+            <a href="https://naar.io" target="_blank" rel="noopener noreferrer" className="inline-block">
               <Image
                 src="/logo-footer.svg"
                 alt="Naar"
@@ -611,7 +619,7 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
                 height={60}
                 className="h-10 w-auto"
               />
-            </Link>
+            </a>
             <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/70 hover:[&_a]:text-white [&_a]:transition-colors">
               <a href="https://naar.io/privacy-policy" target="_blank" rel="noopener noreferrer">
                 Privacy Policy
