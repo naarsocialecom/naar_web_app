@@ -1,5 +1,5 @@
 import './globals.css';
-import Link from 'next/link';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,25 +13,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <nav className="bg-[rgb(63,240,255)] py-1 px-6 text-xs font-medium text-black overflow-hidden whitespace-nowrap">
           <div className="inline-flex animate-[marquee_12s_linear_infinite]">
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
-            <span className="mx-6">• Install App • ₹200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
+            <span className="mx-6">• Install App • INR 200 OFF</span>
           </div>
         </nav>
         <header className="fixed top-6 left-0 right-0 z-10 bg-transparent">
-          <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-center">
-            <Link href="/" className="block h-8 w-auto">
+          <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-center mt-6">
+            <a href="https://naar.io" className="block h-8 w-auto" target="_blank" rel="noopener noreferrer">
               <img src="/logo.svg" alt="Naar" className="h-full w-auto" />
-            </Link>
+            </a>
           </div>
         </header>
-        <main>{children}</main>
+        <main>
+          <AuthProvider>{children}</AuthProvider>
+        </main>
       </body>
     </html>
   );

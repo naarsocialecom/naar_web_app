@@ -1,15 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { Product, ProductVariant } from "@/types/product";
+import CheckoutFlow from "@/components/checkout/CheckoutFlow";
 
 const MAX_DESC_LENGTH = 150;
 
 function getImageUrl(imgBase: string, fileName: string): string {
   if (!imgBase || !fileName) return "";
-  return `${imgBase}${imgBase.endsWith("/") ? "" : "/"}${fileName}`;
+  return `${imgBase}${imgBase.endsWith("/") ? "" : "/uploads/products/"}${fileName}`;
 }
 
 function getVariantLabel(v: ProductVariant): string {
@@ -27,7 +27,7 @@ function isSingleDefaultVariant(variants: ProductVariant[]): boolean {
 
 const FRAME_IMGS = ["/frame1.jpeg", "/frame2.jpeg", "/frame3.jpeg", "/frame4.jpeg", "/frame5.jpeg", "/frame6.jpeg"];
 
-const GAP = 24;
+const GAP = -24;
 const BASE_H = 370;
 const BASE_W = 260;
 const SET_SIZE = FRAME_IMGS.length * BASE_W + (FRAME_IMGS.length - 1) * GAP;
@@ -125,11 +125,12 @@ function GlobeCarousel() {
       <div
         ref={containerRef}
         onMouseDown={onMouseDown}
-        className={`flex items-center justify-center gap-6 overflow-x-auto overflow-y-visible py-12 scrollbar-hide ${isGrabbing ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`flex items-center justify-center overflow-x-auto overflow-y-visible py-12 scrollbar-hide ${isGrabbing ? "cursor-grabbing" : "cursor-grab"}`}
         style={{
           scrollbarWidth: "none",
           msOverflowStyle: "none",
           perspective: "1200px",
+          gap: GAP,
         }}
       >
         {imgs.map((src, i) => {
@@ -171,10 +172,11 @@ function GlobeCarousel() {
 
 interface ProductClientProps {
   product: Product;
+  productId: string;
   imgBase: string;
 }
 
-export default function ProductClient({ product, imgBase }: ProductClientProps) {
+export default function ProductClient({ product, productId, imgBase }: ProductClientProps) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
@@ -185,9 +187,20 @@ export default function ProductClient({ product, imgBase }: ProductClientProps) 
     : null;
 
   const variants = product.variants || [];
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+  const getVariantQty = (v: ProductVariant) => v?.quantity ?? (v?.inStock !== false ? 99 : 0);
+  const defaultVariantIndex = variants.findIndex((v) => getVariantQty(v) > 0);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(
+    defaultVariantIndex >= 0 ? defaultVariantIndex : 0
+  );
   const selectedVariant = variants[selectedVariantIndex] ?? variants[0];
-  const currency = selectedVariant?.currency ?? product.currency ?? "₹";
+  const maxQuantity = selectedVariant?.quantity ?? (selectedVariant?.inStock !== false ? 99 : 0);
+  const [quantity, setQuantity] = useState(1);
+
+  useEffect(() => {
+    setQuantity((q) => (maxQuantity === 0 ? 0 : Math.min(Math.max(q, 1), maxQuantity)));
+  }, [selectedVariantIndex, maxQuantity]);
+
+  const currency = selectedVariant?.currency ?? product.currency ?? "INR ";
   const currentPrice =
     selectedVariant?.price ?? product.price ?? 0;
   const originalPrice =
@@ -206,13 +219,16 @@ export default function ProductClient({ product, imgBase }: ProductClientProps) 
     variants.length > 0 && !isSingleDefaultVariant(variants);
   const variantLabel = variants[0]?.variantName;
 
+  const [showCheckout, setShowCheckout] = useState(false);
+  const productForCheckout = { ...product, _id: product._id || productId };
+
   return (
     <div className="min-h-screen bg-[#f8f8f8] pt-20 pb-0">
       <header className="bg-[#f8f8f8] pt-8 pb-20">
         <div className="max-w-[1200px] mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="relative order-1">
-              <div className="relative w-full aspect-[575/601] rounded-xl overflow-hidden bg-white">
+              <div className="relative w-full aspect-[575/651] rounded-xl overflow-hidden bg-white">
                 {mainImageUrl ? (
                   <Image
                     src={mainImageUrl}
@@ -245,26 +261,30 @@ export default function ProductClient({ product, imgBase }: ProductClientProps) 
                 </div>
               </div>
               {imageFiles.length > 1 && (
-                <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
-                  {imageFiles.slice(0, 5).map((fileName, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedImage(i)}
-                      className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-colors ${
-                        selectedImage === i
-                          ? "border-black bg-[#f8f8f8]"
-                          : "border-white bg-[#ececea]"
-                      }`}
-                    >
-                      <Image
-                        src={getImageUrl(imgBase, fileName)}
-                        alt=""
-                        width={56}
-                        height={56}
-                        className="object-cover w-full h-full"
-                      />
-                    </button>
-                  ))}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4">
+                  <div className="flex gap-2 overflow-x-auto justify-center bg-white backdrop-blur-md rounded-xl p-1">
+                    {imageFiles.slice(0, 5).map((fileName, i) => {
+                      const isActive = selectedImage === i;
+
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedImage(i)}
+                          className={`flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all duration-300 ease-in-out
+                      ${isActive ? "w-20 h-16 border-black shadow-md z-10" : "w-16 h-16 border-white opacity-80 hover:opacity-100"}
+                    `}
+                        >
+                          <Image
+                            src={getImageUrl(imgBase, fileName)}
+                            alt=""
+                            width={80}
+                            height={80}
+                            className="object-cover w-full h-full"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -332,22 +352,66 @@ export default function ProductClient({ product, imgBase }: ProductClientProps) 
                 </div>
               )}
 
-              <a
-                href="https://rzp.io/rzp/naar2-1purse"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center w-full py-4 px-6 rounded-full bg-[rgb(63,240,255)] text-black font-bold text-lg tracking-[-0.035em] hover:opacity-90 transition-opacity"
-              >
-                Buy Now
-              </a>
+              <div className="flex items-center gap-4">
+                <p className="font-bold text-black">Quantity</p>
+                <div className="flex items-center border-2 border-[rgba(0,0,0,0.2)] rounded-lg overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    disabled={quantity <= 1}
+                    className="w-12 h-12 flex items-center justify-center bg-[#f8f8f8] hover:bg-[#ececea] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#f8f8f8] transition-colors"
+                    aria-label="Decrease quantity"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                    </svg>
+                  </button>
+                  <span className="w-12 h-12 flex items-center justify-center font-bold text-lg border-x border-[rgba(0,0,0,0.1)]">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
+                    disabled={quantity >= maxQuantity}
+                    className="w-12 h-12 flex items-center justify-center bg-[#f8f8f8] hover:bg-[#ececea] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#f8f8f8] transition-colors"
+                    aria-label="Increase quantity"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
 
-              <p className="text-lg text-black font-bold">
+              <button
+                type="button"
+                onClick={() => setShowCheckout(true)}
+                disabled={maxQuantity === 0}
+                className={`inline-flex items-center justify-center w-full py-4 px-6 rounded-full font-bold text-lg tracking-[-0.035em] transition-opacity ${
+                  maxQuantity === 0
+                    ? "bg-[#e0e0e0] text-[#888] cursor-not-allowed"
+                    : "bg-[rgb(63,240,255)] text-black hover:opacity-90"
+                }`}
+              >
+                {maxQuantity === 0 ? "Sold Out" : "Buy Now"}
+              </button>
+              {showCheckout && (
+                <CheckoutFlow
+                  product={productForCheckout}
+                  selectedVariant={selectedVariant}
+                  quantity={quantity}
+                  imgBase={imgBase}
+                  onClose={() => setShowCheckout(false)}
+                />
+              )}
+
+              <p className="text-lg text-black font-bold mb-2 md:mb-6">
                 Install Naar App to{" "}
-                <span className="font-extrabold">Get ₹200 Offer</span>
+                <span className="font-extrabold">Get INR 200 Offer</span>
               </p>
 
-              <div className="space-y-3 pt-4">
-                <div className="flex items-start gap-3">
+              <div className="flex flex-col md:flex-row md:items-center items-start">
+                <div className="flex items-center gap-3 md:gap-4 md:min-w-[180px] w-full md:w-auto">
                   <svg
                     className="w-5 h-5 mt-0.5 flex-shrink-0"
                     fill="none"
@@ -358,18 +422,21 @@ export default function ProductClient({ product, imgBase }: ProductClientProps) 
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={1.5}
-                      d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"
+                      d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z"
                     />
                   </svg>
-                  <div>
-                    <p className="font-bold text-black">Design</p>
-                    <p className="text-[#787878] text-base font-medium">
-                      Compact foldable design
-                    </p>
-                  </div>
+                  <p className="text-md font-semibold text-black">Design</p>
                 </div>
-                <div className="h-px bg-[rgba(0,0,0,0.1)]" />
-                <div className="flex items-start gap-3">
+
+                <p className="text-md text-[#6e6e6e] font-medium mt-2 md:mt-0 md:ml-4">
+                  Compact foldable design
+                </p>
+              </div>
+
+              <div className="w-full h-px bg-gray-300" />
+
+              <div className="flex flex-col md:flex-row md:items-center items-start">
+                <div className="flex items-center gap-3 md:gap-4 md:min-w-[180px] w-full md:w-auto">
                   <svg
                     className="w-5 h-5 mt-0.5 flex-shrink-0"
                     fill="none"
@@ -383,15 +450,17 @@ export default function ProductClient({ product, imgBase }: ProductClientProps) 
                       d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                     />
                   </svg>
-                  <div>
-                    <p className="font-bold text-black">Care</p>
-                    <p className="text-[#787878] text-base font-medium">
-                      Hand wash separately in cold water
-                    </p>
-                  </div>
+                  <p className="text-md font-semibold text-black">Care</p>
                 </div>
-                <div className="h-px bg-[rgba(0,0,0,0.1)]" />
-                <div className="flex items-start gap-3">
+
+                <p className="text-md text-[#6e6e6e] font-medium mt-2 md:mt-0 md:ml-4">
+                  Hand wash separately in cold water
+                </p>
+              </div>
+
+              <div className="w-full h-px bg-gray-300" />
+              <div className="flex flex-col md:flex-row md:items-center items-start">
+                <div className="flex items-center gap-3 md:gap-4 md:min-w-[180px] w-full md:w-auto">
                   <svg
                     className="w-5 h-5 mt-0.5 flex-shrink-0"
                     fill="none"
@@ -405,18 +474,17 @@ export default function ProductClient({ product, imgBase }: ProductClientProps) 
                       d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
                     />
                   </svg>
-                  <div>
-                    <p className="font-bold text-black">Quality</p>
-                    <p className="text-[#787878] text-base font-medium">
-                      Stitched for regular daily use.
-                    </p>
-                  </div>
+                  <p className="text-md font-semibold text-black">Quality</p>
                 </div>
+
+                <p className="text-md text-[#6e6e6e] font-medium mt-2 md:mt-0 md:ml-4">
+                  Stitched for regular daily use.
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-12 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-12 w-full">
             {[
               {
                 icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
@@ -542,15 +610,40 @@ export default function ProductClient({ product, imgBase }: ProductClientProps) 
             </form>
           </div>
           <div className="h-px bg-white/15 mb-12" />
-          <Link href="/" className="inline-block">
-            <Image
-              src="/logo-footer.svg"
-              alt="Naar"
-              width={167}
-              height={60}
-              className="h-10 w-auto"
-            />
-          </Link>
+          <div className="flex flex-col gap-8">
+            <a href="https://naar.io" target="_blank" rel="noopener noreferrer" className="inline-block">
+              <Image
+                src="/logo-footer.svg"
+                alt="Naar"
+                width={167}
+                height={60}
+                className="h-10 w-auto"
+              />
+            </a>
+            <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/70 hover:[&_a]:text-white [&_a]:transition-colors">
+              <a href="https://naar.io/privacy-policy" target="_blank" rel="noopener noreferrer">
+                Privacy Policy
+              </a>
+              <a href="https://naar.io/cookies-policy" target="_blank" rel="noopener noreferrer">
+                Cookie Policy
+              </a>
+              <a href="https://naar.io/shipping-delivery" target="_blank" rel="noopener noreferrer">
+                Shipping & Delivery Policy
+              </a>
+              <a href="https://naar.io/returns-refunds" target="_blank" rel="noopener noreferrer">
+                Refunds & Returns Policy
+              </a>
+              <a href="https://naar.io/terms-conditions" target="_blank" rel="noopener noreferrer">
+                Terms & Conditions
+              </a>
+              <a href="https://naar.io/warranties-liabilities" target="_blank" rel="noopener noreferrer">
+                Warranty & Liabilities Policy
+              </a>
+              <a href="https://naar.io/disclaimer" target="_blank" rel="noopener noreferrer">
+                Website Disclaimer
+              </a>
+            </nav>
+          </div>
         </div>
       </footer>
     </div>

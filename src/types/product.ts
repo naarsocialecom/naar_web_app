@@ -1,4 +1,5 @@
 export interface ProductVariant {
+  _id?: string;
   variantName?: string;
   variantType?: string;
   variantValue?: string;
@@ -7,6 +8,7 @@ export interface ProductVariant {
   originalPriceWithTax?: number;
   currency?: string;
   inStock?: boolean;
+  quantity?: number;
 }
 
 export interface ProductContent {
@@ -14,6 +16,7 @@ export interface ProductContent {
 }
 
 export interface Product {
+  _id?: string;
   title: string;
   description?: string;
   content?: ProductContent[];
