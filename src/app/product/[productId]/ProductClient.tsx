@@ -400,11 +400,11 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
                 <span className="font-extrabold">Get ₹200 Offer</span>
               </p>
 
-              {/* MATERIAL */}
+              {/* DESIGN */}
               <div className="flex flex-col md:flex-row md:items-center items-start">
                 <div className="flex items-center gap-3 md:gap-4 md:min-w-[180px] w-full md:w-auto">
                   <svg
-                    className="w-4 h-4 text-black flex-shrink-0"
+                    className="w-5 h-5 mt-0.5 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -412,15 +412,15 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={1.7}
-                      d="M20 7l-8-4-8 4v10l8 4 8-4V7z"
+                      strokeWidth={1.5}
+                      d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z"
                     />
                   </svg>
-                  <p className="text-md font-semibold text-black">Material</p>
+                  <p className="text-md font-semibold text-black">Design</p>
                 </div>
 
                 <p className="text-md text-[#6e6e6e] font-medium mt-2 md:mt-0 md:ml-4">
-                  Premium four way stretch polyurethane
+                  Compact foldable design
                 </p>
               </div>
 
@@ -430,7 +430,7 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
               <div className="flex flex-col md:flex-row md:items-center items-start">
                 <div className="flex items-center gap-3 md:gap-4 md:min-w-[180px] w-full md:w-auto">
                   <svg
-                    className="w-5 h-5 text-black flex-shrink-0"
+                    className="w-5 h-5 mt-0.5 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -438,24 +438,24 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={1.7}
-                      d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"
+                      strokeWidth={1.5}
+                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                     />
                   </svg>
                   <p className="text-md font-semibold text-black">Care</p>
                 </div>
 
                 <p className="text-md text-[#6e6e6e] font-medium mt-2 md:mt-0 md:ml-4">
-                  Hand wash cold, air dry
+                  Hand wash separately in cold water
                 </p>
               </div>
 
               <div className="w-full h-px bg-gray-300" />
-              {/* WARRANTY */}
+              {/* QUALITY */}
               <div className="flex flex-col md:flex-row md:items-center items-start">
                 <div className="flex items-center gap-3 md:gap-4 md:min-w-[180px] w-full md:w-auto">
                   <svg
-                    className="w-5 h-5 text-black flex-shrink-0"
+                    className="w-5 h-5 mt-0.5 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -463,15 +463,15 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={1.7}
-                      d="M9 12l2 2 4-4"
+                      strokeWidth={1.5}
+                      d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
                     />
                   </svg>
-                  <p className="text-md font-semibold text-black">Warranty</p>
+                  <p className="text-md font-semibold text-black">Quality</p>
                 </div>
 
                 <p className="text-md text-[#6e6e6e] font-medium mt-2 md:mt-0 md:ml-4">
-                  Anti-peel and crack surface guarantee
+                  Stitched for regular daily use.
                 </p>
               </div>
             </div>
