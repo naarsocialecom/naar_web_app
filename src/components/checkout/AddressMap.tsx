@@ -170,6 +170,10 @@ export default function AddressMap({
       setError("Please select a location on the map");
       return;
     }
+    if (!userPhone || !userPhone.trim()) {
+      setError("Phone number is required. Please log in again.");
+      return;
+    }
     setLoading(true);
     try {
       const { createUser, createAddress } = await import("@/lib/api-client");

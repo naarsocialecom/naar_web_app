@@ -19,6 +19,7 @@ import type { UserDetails } from "@/types/api";
 interface AuthContextValue {
   token: string | null;
   user: UserDetails | null;
+  loginPhone: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (phoneWithCountryCode: string, otp: string) => Promise<void>;
@@ -32,6 +33,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<UserDetails | null>(null);
+  const [loginPhone, setLoginPhone] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const persistToken = useCallback(async () => {
@@ -48,8 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
+    setLoginPhone(null);
     if (typeof window !== "undefined") {
       localStorage.removeItem("naar_id_token");
+      localStorage.removeItem("naar_login_phone");
     }
   }, []);
 
@@ -73,6 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { verifyOtp } = await import("@/lib/api-client");
       const res = await verifyOtp(phoneWithCountryCode, otp);
       if (!res?.token) throw new Error("Invalid response");
+      setLoginPhone(phoneWithCountryCode);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("naar_login_phone", phoneWithCountryCode);
+      }
       await signInWithToken(res.token);
       await persistToken();
       await refreshUser();
@@ -88,6 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       if (typeof window === "undefined") return;
       const stored = localStorage.getItem("naar_id_token");
+      const storedPhone = localStorage.getItem("naar_login_phone");
+      if (storedPhone) setLoginPhone(storedPhone);
       if (stored) {
         setToken(stored);
         try {
@@ -104,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthContextValue = {
     token,
     user,
+    loginPhone,
     isLoading,
     isAuthenticated: !!token,
     login,

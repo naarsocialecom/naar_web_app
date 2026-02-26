@@ -28,7 +28,7 @@ function isSingleDefaultVariant(variants: ProductVariant[]): boolean {
 
 const FRAME_IMGS = ["/frame1.jpeg", "/frame2.jpeg", "/frame3.jpeg", "/frame4.jpeg", "/frame5.jpeg", "/frame6.jpeg"];
 
-const GAP = 0;
+const GAP = -24;
 const BASE_H = 370;
 const BASE_W = 260;
 const SET_SIZE = FRAME_IMGS.length * BASE_W + (FRAME_IMGS.length - 1) * GAP;
@@ -126,11 +126,12 @@ function GlobeCarousel() {
       <div
         ref={containerRef}
         onMouseDown={onMouseDown}
-        className={`flex items-center justify-center gap-0 overflow-x-auto overflow-y-visible py-12 scrollbar-hide ${isGrabbing ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`flex items-center justify-center overflow-x-auto overflow-y-visible py-12 scrollbar-hide ${isGrabbing ? "cursor-grabbing" : "cursor-grab"}`}
         style={{
           scrollbarWidth: "none",
           msOverflowStyle: "none",
           perspective: "1200px",
+          gap: GAP,
         }}
       >
         {imgs.map((src, i) => {
@@ -391,6 +392,7 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
                   product={productForCheckout}
                   selectedVariant={selectedVariant}
                   quantity={quantity}
+                  imgBase={imgBase}
                   onClose={() => setShowCheckout(false)}
                 />
               )}

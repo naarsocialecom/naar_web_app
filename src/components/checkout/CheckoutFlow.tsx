@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginModal from "./LoginModal";
 import AddressMap from "./AddressMap";
@@ -75,10 +76,16 @@ function EstimateBreakdown({ estimate }: { estimate: CheckoutEstimate }) {
 
 type Step = "idle" | "login" | "address" | "address-map" | "confirm" | "payment" | "success";
 
+function getProductImageUrl(imgBase: string, fileName: string): string {
+  if (!imgBase || !fileName) return "";
+  return `${imgBase}${imgBase.endsWith("/") ? "" : "/"}uploads/products/${fileName}`;
+}
+
 interface CheckoutFlowProps {
   product: Product;
   selectedVariant: ProductVariant;
   quantity: number;
+  imgBase?: string;
   onClose: () => void;
 }
 
@@ -129,9 +136,10 @@ export default function CheckoutFlow({
   product,
   selectedVariant,
   quantity,
+  imgBase = "",
   onClose,
 }: CheckoutFlowProps) {
-  const { isAuthenticated, user, login, requestOtp, refreshUser, logout } = useAuth();
+  const { isAuthenticated, user, loginPhone, login, requestOtp, refreshUser, logout } = useAuth();
   const [step, setStep] = useState<Step>("idle");
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
@@ -160,6 +168,24 @@ export default function CheckoutFlow({
     }
   }, [logout]);
 
+  const routeAfterUserCheck = useCallback(
+    async () => {
+      try {
+        const res = await getUserDetails();
+        if (res?.data?.userId) {
+          await refreshUser();
+          setStep("address");
+          fetchAddresses();
+        } else {
+          setStep("address-map");
+        }
+      } catch {
+        setStep("address-map");
+      }
+    },
+    [refreshUser, fetchAddresses]
+  );
+
   useEffect(() => {
     if (!initialized) {
       setInitialized(true);
@@ -167,18 +193,9 @@ export default function CheckoutFlow({
         setStep("login");
         return;
       }
-      // Verify auth with user details before proceeding (handles expired/stale tokens)
-      getUserDetails()
-        .then(() => {
-          setStep("address");
-          fetchAddresses();
-        })
-        .catch(() => {
-          logout();
-          setStep("login");
-        });
+      routeAfterUserCheck();
     }
-  }, [initialized, isAuthenticated, fetchAddresses, logout]);
+  }, [initialized, isAuthenticated, routeAfterUserCheck]);
 
   const fetchEstimate = useCallback(
     async (addressId: string) => {
@@ -225,8 +242,7 @@ export default function CheckoutFlow({
   };
 
   const handleLoginSuccess = () => {
-    setStep("address");
-    fetchAddresses();
+    routeAfterUserCheck();
   };
 
   const handleAddressCreated = (addr: Address) => {
@@ -355,7 +371,7 @@ export default function CheckoutFlow({
   if (step === "address" && addresses.length === 0) {
     return (
       <AddressMap
-        userPhone={user?.phoneNumber || ""}
+        userPhone={user?.phoneNumber || loginPhone || ""}
         hasUserRecord={!!user?.userId}
         userName={user?.name || user?.userName}
         onAddressCreated={handleAddressCreated}
@@ -447,7 +463,25 @@ export default function CheckoutFlow({
             <div className="p-4 rounded-xl bg-white border border-[var(--border-light)]">
               <h3 className="font-bold text-black mb-3">Order summary</h3>
               <div className="flex gap-3 mb-3">
-                <div className="w-16 h-16 rounded-lg bg-[var(--bg-card)] flex-shrink-0" />
+                <div className="relative w-16 h-16 rounded-lg bg-[var(--bg-card)] flex-shrink-0 overflow-hidden">
+                  {(() => {
+                    const content = product.content || [];
+                    const firstFile = content[0]?.fileName;
+                    const imgSrc = firstFile ? getProductImageUrl(imgBase, firstFile) : "";
+                    return imgSrc ? (
+                      <Image
+                        src={imgSrc}
+                        alt={product.title}
+                        fill
+                        className="object-cover"
+                        sizes="64px"
+                        unoptimized={imgSrc.startsWith("http")}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[var(--bg-card)]" />
+                    );
+                  })()}
+                </div>
                 <div>
                   <p className="font-medium text-black">{product.title}</p>
                   <p className="text-sm text-[var(--text-muted)]">
@@ -480,7 +514,7 @@ export default function CheckoutFlow({
   if (step === "address-map") {
     return (
       <AddressMap
-        userPhone={user?.phoneNumber || ""}
+        userPhone={user?.phoneNumber || loginPhone || ""}
         hasUserRecord={!!user?.userId}
         userName={user?.name || user?.userName}
         onUserCreated={refreshUser}
