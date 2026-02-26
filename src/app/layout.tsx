@@ -1,5 +1,6 @@
 import './globals.css';
 import Link from 'next/link';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -31,7 +32,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
           </div>
         </header>
-        <main>{children}</main>
+        <main>
+          <AuthProvider>{children}</AuthProvider>
+        </main>
       </body>
     </html>
   );

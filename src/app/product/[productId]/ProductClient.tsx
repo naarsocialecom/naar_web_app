@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { Product, ProductVariant } from "@/types/product";
+import CheckoutFlow from "@/components/checkout/CheckoutFlow";
 
 const MAX_DESC_LENGTH = 150;
 
@@ -27,7 +28,7 @@ function isSingleDefaultVariant(variants: ProductVariant[]): boolean {
 
 const FRAME_IMGS = ["/frame1.jpeg", "/frame2.jpeg", "/frame3.jpeg", "/frame4.jpeg", "/frame5.jpeg", "/frame6.jpeg"];
 
-const GAP = 24;
+const GAP = 0;
 const BASE_H = 370;
 const BASE_W = 260;
 const SET_SIZE = FRAME_IMGS.length * BASE_W + (FRAME_IMGS.length - 1) * GAP;
@@ -125,7 +126,7 @@ function GlobeCarousel() {
       <div
         ref={containerRef}
         onMouseDown={onMouseDown}
-        className={`flex items-center justify-center gap-6 overflow-x-auto overflow-y-visible py-12 scrollbar-hide ${isGrabbing ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`flex items-center justify-center gap-0 overflow-x-auto overflow-y-visible py-12 scrollbar-hide ${isGrabbing ? "cursor-grabbing" : "cursor-grab"}`}
         style={{
           scrollbarWidth: "none",
           msOverflowStyle: "none",
@@ -171,10 +172,11 @@ function GlobeCarousel() {
 
 interface ProductClientProps {
   product: Product;
+  productId: string;
   imgBase: string;
 }
 
-export default function ProductClient({ product, imgBase }: ProductClientProps) {
+export default function ProductClient({ product, productId, imgBase }: ProductClientProps) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
@@ -187,6 +189,13 @@ export default function ProductClient({ product, imgBase }: ProductClientProps) 
   const variants = product.variants || [];
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const selectedVariant = variants[selectedVariantIndex] ?? variants[0];
+  const maxQuantity = selectedVariant?.quantity ?? (selectedVariant?.inStock !== false ? 99 : 0);
+  const [quantity, setQuantity] = useState(1);
+
+  useEffect(() => {
+    setQuantity((q) => (maxQuantity === 0 ? 0 : Math.min(Math.max(q, 1), maxQuantity)));
+  }, [selectedVariantIndex, maxQuantity]);
+
   const currency = selectedVariant?.currency ?? product.currency ?? "₹";
   const currentPrice =
     selectedVariant?.price ?? product.price ?? 0;
@@ -205,6 +214,9 @@ export default function ProductClient({ product, imgBase }: ProductClientProps) 
   const showVariantSelector =
     variants.length > 0 && !isSingleDefaultVariant(variants);
   const variantLabel = variants[0]?.variantName;
+
+  const [showCheckout, setShowCheckout] = useState(false);
+  const productForCheckout = { ...product, _id: product._id || productId };
 
   return (
     <div className="min-h-screen bg-[#f8f8f8] pt-20 pb-0">
@@ -332,14 +344,52 @@ export default function ProductClient({ product, imgBase }: ProductClientProps) 
                 </div>
               )}
 
-              <a
-                href="https://rzp.io/rzp/naar2-1purse"
-                target="_blank"
-                rel="noopener noreferrer"
+              <div className="flex items-center gap-4">
+                <p className="font-bold text-black">Quantity</p>
+                <div className="flex items-center border-2 border-[rgba(0,0,0,0.2)] rounded-lg overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    disabled={quantity <= 1}
+                    className="w-12 h-12 flex items-center justify-center bg-[#f8f8f8] hover:bg-[#ececea] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#f8f8f8] transition-colors"
+                    aria-label="Decrease quantity"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                    </svg>
+                  </button>
+                  <span className="w-12 h-12 flex items-center justify-center font-bold text-lg border-x border-[rgba(0,0,0,0.1)]">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
+                    disabled={quantity >= maxQuantity}
+                    className="w-12 h-12 flex items-center justify-center bg-[#f8f8f8] hover:bg-[#ececea] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#f8f8f8] transition-colors"
+                    aria-label="Increase quantity"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowCheckout(true)}
                 className="inline-flex items-center justify-center w-full py-4 px-6 rounded-full bg-[rgb(63,240,255)] text-black font-bold text-lg tracking-[-0.035em] hover:opacity-90 transition-opacity"
               >
                 Buy Now
-              </a>
+              </button>
+              {showCheckout && (
+                <CheckoutFlow
+                  product={productForCheckout}
+                  selectedVariant={selectedVariant}
+                  quantity={quantity}
+                  onClose={() => setShowCheckout(false)}
+                />
+              )}
 
               <p className="text-lg text-black font-bold">
                 Install Naar App to{" "}

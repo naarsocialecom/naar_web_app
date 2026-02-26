@@ -33,6 +33,7 @@ export default async function ProductPage({
   return (
     <ProductClient
       product={product}
+      productId={productId}
       imgBase={imgBase}
     />
   );
