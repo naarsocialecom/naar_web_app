@@ -8,10 +8,69 @@ import {
   getAddresses,
   getCheckoutEstimate,
   createOrder,
+  cancelOrder,
 } from "@/lib/api-client";
 import { ENV } from "@/lib/env";
 import type { Product, ProductVariant } from "@/types/product";
 import type { Address, CheckoutEstimate } from "@/types/api";
+
+const DEFAULT_LABELS: Record<string, string> = {
+  productPrice: "Sub Total",
+  shipping: "Shipping",
+  gst: "GST",
+  platformFees: "Platform Fees",
+  discount: "Coupon Discount",
+};
+
+function formatINR(n: number): string {
+  return new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2 }).format(n);
+}
+
+function EstimateBreakdown({ estimate }: { estimate: CheckoutEstimate }) {
+  const keys = estimate.labels
+    ? Object.keys(estimate.labels).filter((k) => k !== "total")
+    : Object.keys(DEFAULT_LABELS);
+  const currency = "₹";
+  return (
+    <div className="space-y-1.5 text-sm border-t border-[var(--border-light)] pt-3">
+      {keys.map((key) => {
+        const label = estimate.labels?.[key] ?? DEFAULT_LABELS[key] ?? key;
+        const value = ((estimate as unknown) as Record<string, unknown>)[key] as number | undefined ?? 0;
+        const isShipping = key === "shipping";
+        const isLogisticsFree = isShipping && estimate.isLogisticsFree;
+        if (value === 0 && !isShipping && key !== "productPrice") return null;
+        if (isShipping && value === 0 && !isLogisticsFree) return null;
+        const isDiscount = key === "discount";
+        const strikeValue = isLogisticsFree && (estimate.estimateLogisticsPrice ?? estimate.shipping) > 0
+          ? estimate.estimateLogisticsPrice ?? estimate.shipping
+          : null;
+        return (
+          <div key={key} className="flex justify-between items-center">
+            <span className="text-[var(--text-muted)]">{label}</span>
+            <span>
+              {isLogisticsFree && strikeValue != null ? (
+                <>
+                  <span className="text-[var(--text-muted-light)] line-through mr-1.5">
+                    {currency}{formatINR(strikeValue)}
+                  </span>
+                  <span className="font-medium text-green-600">FREE</span>
+                </>
+              ) : (
+                <span className={isDiscount ? "text-green-600" : ""}>
+                  {isDiscount ? "(-) " : ""}{currency}{formatINR(value)}
+                </span>
+              )}
+            </span>
+          </div>
+        );
+      })}
+      <div className="flex justify-between font-bold text-black pt-2 border-t border-[var(--border-light)] mt-2">
+        <span>Total</span>
+        <span>{currency}{formatINR(estimate.total)}</span>
+      </div>
+    </div>
+  );
+}
 
 type Step = "idle" | "login" | "address" | "address-map" | "confirm" | "payment" | "success";
 
@@ -33,9 +92,13 @@ interface RazorpayOptions {
   amount: number;
   currency: string;
   order_id: string;
+  name?: string;
+  description?: string;
   handler: (response: RazorpayResponse) => void;
   prefill?: { name?: string; email?: string; contact?: string };
   theme?: { color?: string };
+  timeout?: number;
+  modal?: { ondismiss?: () => void; escape?: boolean };
 }
 
 interface RazorpayResponse {
@@ -67,7 +130,7 @@ export default function CheckoutFlow({
   quantity,
   onClose,
 }: CheckoutFlowProps) {
-  const { isAuthenticated, user, login, requestOtp } = useAuth();
+  const { isAuthenticated, user, login, requestOtp, refreshUser } = useAuth();
   const [step, setStep] = useState<Step>("idle");
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
@@ -156,34 +219,102 @@ export default function CheckoutFlow({
     if (!estimate || !selectedAddress) return;
     setLoading(true);
     setError("");
+    const cacheKey = `order_${estimate.quoteId}`;
+
+    const cleanupOrder = async (orderId: string) => {
+      try {
+        await cancelOrder(orderId);
+      } catch {
+        // Best-effort cancel
+      }
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(cacheKey);
+      }
+    };
+
     try {
       const loaded = await loadRazorpay();
       if (!loaded || !window.Razorpay) {
         setError("Payment gateway could not be loaded");
+        setLoading(false);
         return;
       }
-      const { orderId, razorpayOrderId } = await createOrder(estimate.quoteId);
+
+      let orderData: { orderId: string; razorpayOrderId: string; expiryTime: string };
+      const cached = typeof window !== "undefined" ? window.localStorage.getItem(cacheKey) : null;
+
+      if (cached) {
+        const parsed = JSON.parse(cached) as { orderId: string; razorpayOrderId: string; expiryTime: string };
+        if (new Date() < new Date(parsed.expiryTime)) {
+          orderData = parsed;
+        } else {
+          orderData = await createOrder(estimate.quoteId);
+          window.localStorage.setItem(cacheKey, JSON.stringify(orderData));
+        }
+      } else {
+        orderData = await createOrder(estimate.quoteId);
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(cacheKey, JSON.stringify(orderData));
+        }
+      }
+
+      const { orderId, razorpayOrderId, expiryTime } = orderData;
+      if (!orderId || !razorpayOrderId) {
+        setError("Invalid order response");
+        setLoading(false);
+        return;
+      }
+
+      const expiryMs = new Date(expiryTime).getTime() - Date.now();
+      const timeoutInSeconds = Math.max(0, Math.floor(expiryMs / 1000));
+
+      if (timeoutInSeconds <= 0) {
+        await cleanupOrder(orderId);
+        setError("Order expired. Please try again.");
+        setLoading(false);
+        return;
+      }
+
       const rzp = new window.Razorpay({
         key: ENV.RAZORPAY_KEY,
         amount: Math.round(estimate.total * 100),
         currency: "INR",
         order_id: razorpayOrderId,
+        name: "Naar Ecommerce Platform",
+        description: `Order valid till ${expiryTime}`,
         prefill: {
           name: user?.name || user?.userName || "",
           contact: user?.phoneNumber || "",
+          email: "",
         },
-        theme: { color: "#3ff0ff" },
+        theme: { color: "#1F1D2B" },
+        timeout: timeoutInSeconds,
+        modal: {
+          escape: false,
+          ondismiss: () => {
+            cleanupOrder(orderId);
+            setError("Payment cancelled.");
+            setLoading(false);
+          },
+        },
         handler: () => {
+          if (typeof window !== "undefined") {
+            window.localStorage.removeItem(cacheKey);
+          }
           setStep("success");
+          setLoading(false);
         },
       });
+
       rzp.on("payment.failed", () => {
+        cleanupOrder(orderId);
         setError("Payment failed. Please try again.");
+        setLoading(false);
       });
+
       rzp.open();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create order");
-    } finally {
       setLoading(false);
     }
   };
@@ -208,6 +339,7 @@ export default function CheckoutFlow({
         userName={user?.name || user?.userName}
         onAddressCreated={handleAddressCreated}
         onBack={onClose}
+        onUserCreated={refreshUser}
       />
     );
   }
@@ -304,22 +436,7 @@ export default function CheckoutFlow({
               </div>
               {loading && !estimate && <p className="text-sm text-[var(--text-muted)]">Fetching estimate...</p>}
               {estimate && (
-                <div className="space-y-1 text-sm border-t border-[var(--border-light)] pt-3">
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-muted)]">Product</span>
-                    <span>₹{estimate.productPrice}</span>
-                  </div>
-                  {estimate.shipping > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-[var(--text-muted)]">Shipping</span>
-                      <span>₹{estimate.shipping}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between font-bold text-black pt-2">
-                    <span>Total</span>
-                    <span>₹{estimate.total}</span>
-                  </div>
-                </div>
+                <EstimateBreakdown estimate={estimate} />
               )}
             </div>
           )}
@@ -344,6 +461,7 @@ export default function CheckoutFlow({
       <AddressMap
         userPhone={user?.phoneNumber || ""}
         userName={user?.name || user?.userName}
+        onUserCreated={refreshUser}
         onAddressCreated={(addr) => {
           setAddresses((a) => [addr, ...a]);
           setSelectedAddress(addr);

@@ -7,31 +7,24 @@ function getToken(request: NextRequest): string | null {
   return auth.replace(/^Bearer\s+/i, "").trim();
 }
 
-export async function GET(request: NextRequest) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ orderId: string }> }
+) {
   const token = getToken(request);
   if (!token) {
     return NextResponse.json({ error: "Authorization required" }, { status: 401 });
   }
-  const res = await fetch(`${ENV.API_URL_SOCIAL}/userDetails`, {
-    headers: { Authorization: token },
-  });
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
-}
-
-export async function POST(request: NextRequest) {
-  const token = getToken(request);
-  if (!token) {
-    return NextResponse.json({ error: "Authorization required" }, { status: 401 });
+  const { orderId } = await params;
+  if (!orderId) {
+    return NextResponse.json({ error: "Order ID required" }, { status: 400 });
   }
-  const body = await request.json();
-  const res = await fetch(`${ENV.API_URL_SOCIAL}/userDetails`, {
-    method: "POST",
+  const res = await fetch(`${ENV.API_URL_COMMERCIAL}/order/${orderId}/cancel`, {
+    method: "PUT",
     headers: {
       "Content-Type": "application/json",
       Authorization: token,
     },
-    body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
   return NextResponse.json(data, { status: res.status });

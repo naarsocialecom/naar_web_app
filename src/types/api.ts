@@ -21,9 +21,12 @@ export interface CheckoutEstimate {
   platformFees?: number;
   total: number;
   discount?: number;
+  isLogisticsFree?: boolean;
+  estimateLogisticsPrice?: number;
   labels?: Record<string, string>;
-  logisticsOptions?: Array<{ id: string; name: string }>;
-  appliedCoupon?: { _id: string; code: string };
+  logisticsOptions?: Array<{ label: string; logisticsChoice: string; deliveryText?: string }>;
+  appliedCoupon?: { _id: string; code: string } | null;
+  couponError?: string | null;
 }
 
 export interface CreateOrderResponse {

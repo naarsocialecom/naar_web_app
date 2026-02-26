@@ -14,6 +14,7 @@ interface AddressMapProps {
   userName?: string;
   onAddressCreated: (address: Address) => void;
   onBack?: () => void;
+  onUserCreated?: () => Promise<void>;
 }
 
 async function searchAddress(query: string): Promise<Array<{ lat: number; lon: number; display_name: string }>> {
@@ -23,10 +24,10 @@ async function searchAddress(query: string): Promise<Array<{ lat: number; lon: n
   return data.results || [];
 }
 
-async function reverseGeocode(lat: number, lon: number): Promise<{ city: string; state: string; pincode: string }> {
+async function reverseGeocode(lat: number, lon: number): Promise<{ city: string; state: string; pincode: string; area: string }> {
   const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lon}`);
   const data = await res.json();
-  return { city: data.city || "", state: data.state || "", pincode: data.pincode || "" };
+  return { city: data.city || "", state: data.state || "", pincode: data.pincode || "", area: data.area || "" };
 }
 
 export default function AddressMap({
@@ -34,6 +35,7 @@ export default function AddressMap({
   userName = "",
   onAddressCreated,
   onBack,
+  onUserCreated,
 }: AddressMapProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ lat: number; lon: number; display_name: string }>>([]);
@@ -41,9 +43,9 @@ export default function AddressMap({
   const [searching, setSearching] = useState(false);
   const [markerPos, setMarkerPos] = useState<{ lat: number; lng: number } | null>(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
-  const [houseNumber, setHouseNumber] = useState("");
-  const [streetName, setStreetName] = useState("");
-  const [geoData, setGeoData] = useState<{ city: string; state: string; pincode: string } | null>(null);
+  const [addressLine, setAddressLine] = useState("");
+  const [nameInput, setNameInput] = useState(userName || "");
+  const [geoData, setGeoData] = useState<{ city: string; state: string; pincode: string; area: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -93,7 +95,7 @@ export default function AddressMap({
     setError("");
     reverseGeocode(markerPos.lat, markerPos.lng)
       .then(setGeoData)
-      .catch(() => setGeoData({ city: "", state: "", pincode: "" }))
+      .catch(() => setGeoData({ city: "", state: "", pincode: "", area: "" }))
       .finally(() => setLoading(false));
   }, [markerPos, showBottomSheet]);
 
@@ -146,13 +148,18 @@ export default function AddressMap({
 
   const handleCreateAddress = async () => {
     setError("");
-    const addressLine1 = [houseNumber.trim(), streetName.trim()].filter(Boolean).join(", ");
-    if (!addressLine1.trim()) {
-      setError("Enter house/flat number and street");
+    const line1 = addressLine.trim();
+    const fullName = userName || nameInput.trim();
+    if (!userName && !nameInput.trim()) {
+      setError("Enter your name");
       return;
     }
-    if (!hasNumber(houseNumber)) {
-      setError("House/flat number must contain a number (e.g. 12, A-101, Flat 5)");
+    if (!line1) {
+      setError("Enter your address");
+      return;
+    }
+    if (!hasNumber(line1)) {
+      setError("Address must include a number (e.g. 12, A-101, Villa 14)");
       return;
     }
     if (!markerPos || !geoData) {
@@ -161,11 +168,16 @@ export default function AddressMap({
     }
     setLoading(true);
     try {
-      const { createAddress } = await import("@/lib/api-client");
+      const { createUser, createAddress } = await import("@/lib/api-client");
+      if (!userName && nameInput.trim()) {
+        await createUser({ name: nameInput.trim() });
+        await onUserCreated?.();
+      }
       const addr = await createAddress({
         addressNickName: "Home",
-        fullName: userName || "Customer",
-        addressLine1,
+        fullName: fullName || "Customer",
+        addressLine1: line1,
+        addressLine2: geoData.area || geoData.city || "N/A",
         city: geoData.city || "N/A",
         state: geoData.state || "N/A",
         pincode: geoData.pincode || "N/A",
@@ -176,11 +188,12 @@ export default function AddressMap({
       });
       onAddressCreated({
         ...addr,
-        addressLine1,
+        addressLine1: line1,
+        addressLine2: geoData.area || geoData.city || "N/A",
         city: geoData.city || "N/A",
         state: geoData.state || "N/A",
         pincode: geoData.pincode || "N/A",
-        fullName: userName || "Customer",
+        fullName: fullName || "Customer",
         addressNickName: "Home",
         phone: userPhone,
       } as Address);
@@ -304,27 +317,31 @@ export default function AddressMap({
 
       {showBottomSheet && markerPos && (
         <div className="flex-shrink-0 p-4 pb-8 pt-5 bg-white rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-          <p className="text-xs text-[#787878] mb-4">Add your address details</p>
+          <p className="text-xs text-[#787878] mb-4">Add your address</p>
           <div className="space-y-3 mb-4">
+            {!userName && (
+              <div>
+                <label className="block text-sm font-semibold text-black mb-1.5">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  placeholder="Your name"
+                  className="w-full px-4 py-3 rounded-xl border border-[rgba(0,0,0,0.12)] focus:border-black focus:ring-1 focus:ring-black outline-none transition-colors"
+                />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-semibold text-black mb-1.5">
-                House / Flat number <span className="text-red-500">*</span>
+                Address <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
-                value={houseNumber}
-                onChange={(e) => setHouseNumber(e.target.value)}
-                placeholder="e.g. 12, A-101, Flat 5"
-                className="w-full px-4 py-3 rounded-xl border border-[rgba(0,0,0,0.12)] focus:border-black focus:ring-1 focus:ring-black outline-none transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-black mb-1.5">Street name</label>
-              <input
-                type="text"
-                value={streetName}
-                onChange={(e) => setStreetName(e.target.value)}
-                placeholder="e.g. Main Road, Sector 5"
+                value={addressLine}
+                onChange={(e) => setAddressLine(e.target.value)}
+                placeholder="e.g. Villa 14, Palm Jumeirah or 12, Main Road"
                 className="w-full px-4 py-3 rounded-xl border border-[rgba(0,0,0,0.12)] focus:border-black focus:ring-1 focus:ring-black outline-none transition-colors"
               />
             </div>
@@ -338,7 +355,7 @@ export default function AddressMap({
           <button
             type="button"
             onClick={handleCreateAddress}
-            disabled={loading || !hasNumber(houseNumber)}
+            disabled={loading || (!userName && !nameInput.trim()) || !addressLine.trim() || !hasNumber(addressLine)}
             className="w-full py-3.5 rounded-full bg-[rgb(63,240,255)] text-black font-bold text-[15px] disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
           >
             {loading ? "Saving..." : "Confirm & continue"}

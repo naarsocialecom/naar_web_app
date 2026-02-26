@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   if (!token) {
     return NextResponse.json({ error: "Authorization required" }, { status: 401 });
   }
-  const res = await fetch(`${ENV.API_URL_SOCIAL}/userDetails`, {
+  const res = await fetch(`${ENV.API_URL_COMMERCIAL}/addresses`, {
     headers: { Authorization: token },
   });
   const data = await res.json().catch(() => ({}));
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Authorization required" }, { status: 401 });
   }
   const body = await request.json();
-  const res = await fetch(`${ENV.API_URL_SOCIAL}/userDetails`, {
+  const res = await fetch(`${ENV.API_URL_COMMERCIAL}/addresses`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -29,7 +29,9 @@ export async function apiClient<T = unknown>(
 
   if (auth) {
     const token = await getAuthToken();
-    if (token) headers["Authorization"] = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+    if (token) {
+      headers["Authorization"] = token.replace(/^Bearer\s+/i, "").trim();
+    }
   }
 
   const res = await fetch(url, {
@@ -74,8 +76,12 @@ export async function getUserDetails(): Promise<{ data?: { userId: string; [key:
   return apiClient("GET", "/api/auth/userDetails", undefined, true, true);
 }
 
+export async function createUser(data: { name: string }): Promise<unknown> {
+  return apiClient("POST", "/api/auth/userDetails", data, true, true);
+}
+
 export async function getAddresses(): Promise<Array<Record<string, unknown> & { _id: string }>> {
-  const res = await apiClient<{ data?: unknown[] } | unknown[]>("GET", "/addresses", undefined, true, true);
+  const res = await apiClient<{ data?: unknown[] } | unknown[]>("GET", "/api/addresses", undefined, true, true);
   const arr = Array.isArray(res) ? res : (res as { data?: unknown[] }).data || [];
   return arr as Array<Record<string, unknown> & { _id: string }>;
 }
@@ -93,7 +99,7 @@ export async function createAddress(data: {
   isDefault: boolean;
   phone: string;
 }): Promise<{ _id: string; [key: string]: unknown }> {
-  return apiClient("POST", "/addresses", data, true, true);
+  return apiClient("POST", "/api/addresses", data, true, true);
 }
 
 export async function getCheckoutEstimate(body: {
@@ -111,7 +117,7 @@ export async function getCheckoutEstimate(body: {
   total: number;
   discount?: number;
 }> {
-  return apiClient("POST", "/checkout/estimate", body, true, true);
+  return apiClient("POST", "/api/checkout/estimate", body, true, true);
 }
 
 export async function createOrder(quoteId: string): Promise<{
@@ -119,5 +125,9 @@ export async function createOrder(quoteId: string): Promise<{
   razorpayOrderId: string;
   expiryTime: string;
 }> {
-  return apiClient("POST", "/createOrder", { quoteId }, true, true);
+  return apiClient("POST", "/api/checkout/createOrder", { quoteId }, true, true);
+}
+
+export async function cancelOrder(orderId: string): Promise<void> {
+  await apiClient("PUT", `/api/order/${orderId}/cancel`, undefined, true, true);
 }
