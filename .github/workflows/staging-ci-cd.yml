@@ -1,0 +1,58 @@
+name: Deploy Staging to EC2
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.STAGING_EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.STAGING_EC2_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Create env
+      run: |
+        cat << EOF > .env
+        NEXT_PUBLIC_API_BASE_URL=${{ secrets.STAGING_NEXT_PUBLIC_API_BASE_URL }}
+        NEXT_PUBLIC_API_URL_COMMERCIAL=${{ secrets.STAGING_NEXT_PUBLIC_API_URL_COMMERCIAL }}
+        NEXT_PUBLIC_API_URL_SOCIAL=${{ secrets.STAGING_NEXT_PUBLIC_API_URL_SOCIAL }}
+        NEXT_PUBLIC_S3_BASE_URL=${{ secrets.STAGING_NEXT_PUBLIC_S3_BASE_URL }}
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${{ secrets.STAGING_NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+        NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.STAGING_NEXT_PUBLIC_FIREBASE_API_KEY }}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.STAGING_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.STAGING_NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+        NEXT_PUBLIC_RAZORPAY_KEY=${{ secrets.STAGING_NEXT_PUBLIC_RAZORPAY_KEY }}
+        EOF
+
+    - name: Deploy
+      run: |
+        ssh ${{ secrets.STAGING_EC2_USER }}@${{ secrets.STAGING_EC2_HOST }} << EOF
+          set -e
+          cd ${{ secrets.STAGING_EC2_REPO_PATH }}
+
+          git fetch --all
+          git reset --hard origin/staging
+          git clean -fd
+        EOF
+
+        scp .env ${{ secrets.STAGING_EC2_USER }}@${{ secrets.STAGING_EC2_HOST }}:${{ secrets.STAGING_EC2_REPO_PATH }}/
+
+        ssh ${{ secrets.STAGING_EC2_USER }}@${{ secrets.STAGING_EC2_HOST }} << EOF
+          set -e
+          cd ${{ secrets.STAGING_EC2_REPO_PATH }}
+
+          npm install
+          npm run build
+          pm2 start npm --name "naar-web-app" -- start || true
+          pm2 restart naar-web-app --update-env
+
+          echo "Deployment to staging successful!"
+        EOF
