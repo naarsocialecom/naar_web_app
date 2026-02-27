@@ -175,14 +175,11 @@ export default function CheckoutFlow({
         const res = await getUserDetails();
         if (res?.data?.userId) {
           await refreshUser();
-          setStep("address");
-          fetchAddresses();
-        } else {
-          setStep("address-map");
         }
       } catch {
-        setStep("address-map");
       }
+      setStep("address");
+      fetchAddresses();
     },
     [refreshUser, fetchAddresses]
   );
@@ -348,26 +345,15 @@ export default function CheckoutFlow({
 
   if (step === "idle") return null;
 
-  if (step === "login") {
+  const userPhone = (user?.phoneNumber || loginPhone || "").trim();
+
+  if (step === "login" || ((step === "address" || step === "address-map") && !userPhone)) {
     return (
       <LoginModal
         onSuccess={handleLoginSuccess}
         onClose={onClose}
         requestOtp={requestOtp}
         login={login}
-      />
-    );
-  }
-
-  if (step === "address" && addresses.length === 0) {
-    return (
-      <AddressMap
-        userPhone={user?.phoneNumber || loginPhone || ""}
-        hasUserRecord={!!user?.userId}
-        userName={user?.name || user?.userName}
-        onAddressCreated={handleAddressCreated}
-        onBack={onClose}
-        onUserCreated={refreshUser}
       />
     );
   }
@@ -401,20 +387,20 @@ export default function CheckoutFlow({
 
         <div className="flex-1 p-4 space-y-4 max-w-lg mx-auto w-full">
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-bold text-black">Delivery address</h3>
+            <h3 className="font-bold text-black mb-3">Delivery address</h3>
+            {addresses.length === 0 ? (
               <button
                 type="button"
                 onClick={() => setStep("address-map")}
-                className="text-sm font-medium text-black hover:underline"
+                className="w-full p-5 rounded-xl border-2 border-dashed border-[var(--border-light)] flex flex-col items-center justify-center gap-2 hover:border-black/30 hover:bg-[var(--bg-card)] transition-colors text-center"
               >
-                {addresses.length ? "Add new" : "Add on map"}
+                <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="font-semibold text-black">Add address</span>
+                <span className="text-sm text-[var(--text-muted)]">Tap to add on map</span>
               </button>
-            </div>
-            {addresses.length === 0 ? (
-              <div className="p-4 rounded-xl border-2 border-dashed border-[var(--border-light)] text-center text-[var(--text-muted)]">
-                No address added yet
-              </div>
             ) : (
               <div className="space-y-2">
                 {addresses.map((addr) => (
@@ -437,16 +423,17 @@ export default function CheckoutFlow({
                     </p>
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setStep("address-map")}
+                  className="w-full py-3 rounded-xl border-2 border-[var(--border-light)] font-semibold text-black hover:border-black/30 hover:bg-[var(--bg-card)] transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add new address
+                </button>
               </div>
-            )}
-            {addresses.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setStep("address-map")}
-                className="mt-2 text-sm text-[var(--text-muted)] hover:text-black"
-              >
-                + Add new address on map
-              </button>
             )}
           </div>
 
@@ -505,7 +492,7 @@ export default function CheckoutFlow({
   if (step === "address-map") {
     return (
       <AddressMap
-        userPhone={user?.phoneNumber || loginPhone || ""}
+        userPhone={userPhone}
         hasUserRecord={!!user?.userId}
         userName={user?.name || user?.userName}
         onUserCreated={refreshUser}
@@ -514,7 +501,7 @@ export default function CheckoutFlow({
           setSelectedAddress(addr);
           setStep("confirm");
         }}
-        onBack={() => setStep(addresses.length > 0 ? "confirm" : "idle")}
+        onBack={() => setStep(addresses.length > 0 ? "confirm" : "address")}
       />
     );
   }

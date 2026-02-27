@@ -7,7 +7,7 @@ import type { Address } from "@/types/api";
 
 const DEFAULT_CENTER = { lat: 28.6139, lng: 77.209 };
 const DEFAULT_ZOOM = 14;
-const MAP_CONTAINER_STYLE = { width: "100%", height: "100%" };
+const MAP_HEIGHT = 260;
 
 interface AddressMapProps {
   userPhone: string;
@@ -147,12 +147,14 @@ export default function AddressMap({
   );
 
   const hasNumber = (s: string) => /\d/.test(s);
+  const showNameField = !hasUserRecord;
+  const needsNumberHint = addressLine.trim().length > 0 && !hasNumber(addressLine.trim());
 
   const handleCreateAddress = async () => {
     setError("");
     const line1 = addressLine.trim();
     const fullName = hasUserRecord ? (userName || "Customer") : nameInput.trim();
-    if (!hasUserRecord && !nameInput.trim()) {
+    if (showNameField && !nameInput.trim()) {
       setError("Enter your name");
       return;
     }
@@ -161,7 +163,7 @@ export default function AddressMap({
       return;
     }
     if (!hasNumber(line1)) {
-      setError("Address must include a number (e.g. 12, A-101, Villa 14)");
+      setError("Please add door number or flat no. (e.g. 12, A-101, Villa 14)");
       return;
     }
     if (!markerPos || !geoData) {
@@ -175,7 +177,7 @@ export default function AddressMap({
     setLoading(true);
     try {
       const { createUser, createAddress } = await import("@/lib/api-client");
-      if (!hasUserRecord && nameInput.trim()) {
+      if (showNameField && nameInput.trim()) {
         await createUser({ name: nameInput.trim() });
         await onUserCreated?.();
       }
@@ -216,7 +218,7 @@ export default function AddressMap({
       zoomControl: true,
       streetViewControl: false,
       mapTypeControl: false,
-      fullscreenControl: true,
+      fullscreenControl: false,
       styles: [
         { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
         { featureType: "transit", elementType: "labels", stylers: [{ visibility: "off" }] },
@@ -227,8 +229,8 @@ export default function AddressMap({
 
   if (!ENV.GOOGLE_MAPS_API_KEY) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-[#f8f8f8] items-center justify-center p-4">
-        <p className="text-[#787878] text-sm">Google Maps API key not configured</p>
+      <div className="fixed inset-0 z-50 flex flex-col bg-black/90 items-center justify-center p-4">
+        <p className="text-white/70 text-sm">Google Maps API key not configured</p>
         {onBack && (
           <button
             type="button"
@@ -243,131 +245,145 @@ export default function AddressMap({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#f8f8f8]">
-      <div className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 p-3">
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex-shrink-0 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
-            aria-label="Back"
-          >
-            <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-        )}
-        <div ref={searchRef} className="flex-1 relative">
-          <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a1a1a1] pointer-events-none">
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/90 items-center justify-center p-4 overflow-auto">
+      <div className="w-full max-w-md flex flex-col gap-4 my-auto">
+        {/* Header — inside-out: dark bar, minimal */}
+        <div className="flex items-center gap-3">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex-shrink-0 w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors text-white"
+              aria-label="Back"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
+            </button>
+          )}
+          <h2 className="text-white font-semibold text-lg tracking-tight">Add address</h2>
+        </div>
+
+        {/* Card container — light inner content */}
+        <div className="bg-[#f8f8f8] rounded-2xl overflow-hidden shadow-xl">
+          {/* Search */}
+          <div ref={searchRef} className="p-3 relative border-b border-black/5">
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a1a1a1] pointer-events-none">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => searchQuery && setShowSearchResults(true)}
+                placeholder="Search area, landmark, address..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-black/8 text-black placeholder:text-[#a1a1a1] text-sm outline-none focus:border-[rgb(63,240,255)] focus:ring-1 focus:ring-[rgb(63,240,255)]/40 transition-all"
+              />
             </div>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => searchQuery && setShowSearchResults(true)}
-              placeholder="Search area, landmark, address..."
-              className="w-full pl-12 pr-4 py-3.5 bg-transparent border-0 outline-none text-black placeholder:text-[#a1a1a1] text-[15px]"
-            />
+            {showSearchResults && (searchQuery || searchResults.length > 0) && (
+              <div className="absolute top-full left-3 right-3 mt-1.5 bg-white rounded-xl shadow-lg max-h-48 overflow-auto z-30 border border-black/5">
+                {searching ? (
+                  <div className="px-4 py-4 text-[#787878] text-sm">Searching...</div>
+                ) : searchResults.length === 0 ? (
+                  <div className="px-4 py-4 text-[#787878] text-sm">No results found</div>
+                ) : (
+                  searchResults.map((r, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleSelectResult(r.lat, r.lon)}
+                      className="w-full text-left px-4 py-3 hover:bg-[#f8f8f8] transition-colors border-b border-black/5 last:border-0 text-sm text-black truncate"
+                    >
+                      {r.display_name}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
-          {showSearchResults && (searchQuery || searchResults.length > 0) && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-2xl shadow-xl max-h-64 overflow-auto z-30">
-              {searching ? (
-                <div className="px-4 py-5 text-[#787878] text-sm">Searching...</div>
-              ) : searchResults.length === 0 ? (
-                <div className="px-4 py-5 text-[#787878] text-sm">No results found</div>
-              ) : (
-                searchResults.map((r, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => handleSelectResult(r.lat, r.lon)}
-                    className="w-full text-left px-4 py-3.5 hover:bg-[#f8f8f8] transition-colors border-b border-[rgba(0,0,0,0.06)] last:border-0 first:rounded-t-2xl"
-                  >
-                    <p className="text-sm font-medium text-black truncate">{r.display_name}</p>
-                  </button>
-                ))
-              )}
+
+          {/* Map — compact, fixed height */}
+          <div className="relative" style={{ height: MAP_HEIGHT }}>
+            {!isLoaded ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-[#ececea]">
+                <span className="text-[#787878] text-sm">Loading map...</span>
+              </div>
+            ) : (
+              <GoogleMap
+                mapContainerStyle={{ width: "100%", height: "100%" }}
+                center={markerPos || DEFAULT_CENTER}
+                zoom={markerPos ? 16 : DEFAULT_ZOOM}
+                onLoad={onMapLoad}
+                onClick={onMapClick}
+                options={mapOptions}
+              >
+                {markerPos && (
+                  <Marker position={markerPos} draggable onDragEnd={onMarkerDragEnd} />
+                )}
+              </GoogleMap>
+            )}
+            <p className="absolute bottom-2 left-3 text-[10px] text-black/50 bg-white/90 px-2 py-1 rounded">
+              Tap or drag pin to set location
+            </p>
+          </div>
+
+          {/* Address form — inline or bottom sheet */}
+          {showBottomSheet && markerPos ? (
+            <div className="p-4 pt-3 border-t border-black/5">
+              <div className="space-y-3 mb-4">
+                {showNameField && (
+                  <div>
+                    <label className="block text-xs font-medium text-black/70 mb-1">Name</label>
+                    <input
+                      type="text"
+                      value={nameInput}
+                      onChange={(e) => setNameInput(e.target.value)}
+                      placeholder="Your name"
+                      className="w-full px-3 py-2.5 rounded-lg bg-white border border-black/10 text-black placeholder:text-[#a1a1a1] text-sm outline-none focus:border-[rgb(63,240,255)] focus:ring-1 focus:ring-[rgb(63,240,255)]/40 transition-all"
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="block text-xs font-medium text-black/70 mb-1">Address</label>
+                  <input
+                    type="text"
+                    value={addressLine}
+                    onChange={(e) => setAddressLine(e.target.value)}
+                    placeholder="e.g. 12, Main Road or A-101, Palm Residency"
+                    className="w-full px-3 py-2.5 rounded-lg bg-white border border-black/10 text-black placeholder:text-[#a1a1a1] text-sm outline-none focus:border-[rgb(63,240,255)] focus:ring-1 focus:ring-[rgb(63,240,255)]/40 transition-all"
+                  />
+                  {needsNumberHint && (
+                    <p className="mt-1 text-xs text-amber-700">
+                      Please add door number or flat no. if not already included
+                    </p>
+                  )}
+                </div>
+                {geoData && (
+                  <p className="text-xs text-[#787878]">
+                    {[geoData.city, geoData.state, geoData.pincode].filter(Boolean).join(", ") || "Detecting..."}
+                  </p>
+                )}
+              </div>
+              {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+              <button
+                type="button"
+                onClick={handleCreateAddress}
+                disabled={loading || (showNameField && !nameInput.trim()) || !addressLine.trim() || !hasNumber(addressLine)}
+                className="w-full py-3 rounded-full bg-[rgb(63,240,255)] text-black font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-95 transition-opacity"
+              >
+                {loading ? "Saving..." : "Confirm & continue"}
+              </button>
+            </div>
+          ) : (
+            <div className="p-4 text-center">
+              <p className="text-sm text-[#787878]">Tap on the map to drop a pin</p>
             </div>
           )}
         </div>
       </div>
-
-      <div className="flex-1 relative min-h-0">
-        {!isLoaded ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#ececea]">
-            <span className="text-[#787878] text-sm">Loading map...</span>
-          </div>
-        ) : (
-          <GoogleMap
-            mapContainerStyle={MAP_CONTAINER_STYLE}
-            center={markerPos || DEFAULT_CENTER}
-            zoom={markerPos ? 16 : DEFAULT_ZOOM}
-            onLoad={onMapLoad}
-            onClick={onMapClick}
-            options={mapOptions}
-          >
-            {markerPos && (
-              <Marker
-                position={markerPos}
-                draggable
-                onDragEnd={onMarkerDragEnd}
-              />
-            )}
-          </GoogleMap>
-        )}
-      </div>
-
-      {showBottomSheet && markerPos && (
-        <div className="flex-shrink-0 p-4 pb-8 pt-5 bg-white rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-          <p className="text-xs text-[#787878] mb-4">Add your address</p>
-          <div className="space-y-3 mb-4">
-            {!hasUserRecord && (
-              <div>
-                <label className="block text-sm font-semibold text-black mb-1.5">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  placeholder="Your name"
-                  className="w-full px-4 py-3 rounded-xl border border-[rgba(0,0,0,0.12)] focus:border-black focus:ring-1 focus:ring-black outline-none transition-colors"
-                />
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-semibold text-black mb-1.5">
-                Address <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={addressLine}
-                onChange={(e) => setAddressLine(e.target.value)}
-                placeholder="e.g. Villa 14, Palm Jumeirah or 12, Main Road"
-                className="w-full px-4 py-3 rounded-xl border border-[rgba(0,0,0,0.12)] focus:border-black focus:ring-1 focus:ring-black outline-none transition-colors"
-              />
-            </div>
-            {geoData && (
-              <p className="text-xs text-[#787878]">
-                {[geoData.city, geoData.state, geoData.pincode].filter(Boolean).join(", ") || "Detecting..."}
-              </p>
-            )}
-          </div>
-          {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
-          <button
-            type="button"
-            onClick={handleCreateAddress}
-            disabled={loading || (!hasUserRecord && !nameInput.trim()) || !addressLine.trim() || !hasNumber(addressLine)}
-            className="w-full py-3.5 rounded-full bg-[rgb(63,240,255)] text-black font-bold text-[15px] disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-          >
-            {loading ? "Saving..." : "Confirm & continue"}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
