@@ -1,0 +1,62 @@
+name: Deploy Production to EC2
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to deploy"
+        required: true
+        default: main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.PROD_EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.PROD_EC2_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Create env
+      run: |
+        cat << EOF > .env
+        NEXT_PUBLIC_API_BASE_URL=${{ secrets.PROD_NEXT_PUBLIC_API_BASE_URL }}
+        NEXT_PUBLIC_API_URL_COMMERCIAL=${{ secrets.PROD_NEXT_PUBLIC_API_URL_COMMERCIAL }}
+        NEXT_PUBLIC_API_URL_SOCIAL=${{ secrets.PROD_NEXT_PUBLIC_API_URL_SOCIAL }}
+        NEXT_PUBLIC_S3_BASE_URL=${{ secrets.PROD_NEXT_PUBLIC_S3_BASE_URL }}
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${{ secrets.PROD_NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+        NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.PROD_NEXT_PUBLIC_FIREBASE_API_KEY }}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.PROD_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.PROD_NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+        NEXT_PUBLIC_RAZORPAY_KEY=${{ secrets.PROD_NEXT_PUBLIC_RAZORPAY_KEY }}
+        NEXT_PUBLIC_SITE_URL=${{ secrets.PROD_NEXT_PUBLIC_SITE_URL }}
+        EOF
+
+    - name: Deploy
+      run: |
+        ssh ${{ secrets.PROD_EC2_USER }}@${{ secrets.PROD_EC2_HOST }} << EOF
+          set -e
+          cd ${{ secrets.PROD_EC2_REPO_PATH }}
+
+          git fetch --all
+          git reset --hard origin/${{ github.event.inputs.branch }}
+          git clean -fd
+        EOF
+
+        scp .env ${{ secrets.PROD_EC2_USER }}@${{ secrets.PROD_EC2_HOST }}:${{ secrets.PROD_EC2_REPO_PATH }}/
+
+        ssh ${{ secrets.PROD_EC2_USER }}@${{ secrets.PROD_EC2_HOST }} << EOF
+          set -e
+          cd ${{ secrets.PROD_EC2_REPO_PATH }}
+
+          npm install
+          npm run build
+          pm2 start npm --name "naar-web-app" -- start || true
+          pm2 restart naar-web-app --update-env
+
+          echo "Deployment to production successful!"
+        EOF
