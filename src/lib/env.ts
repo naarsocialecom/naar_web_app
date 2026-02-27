@@ -11,4 +11,5 @@ export const ENV = {
   FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
   FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
   RAZORPAY_KEY: process.env.NEXT_PUBLIC_RAZORPAY_KEY || "",
+  META_PIXEL_ID: process.env.NEXT_PUBLIC_META_PIXEL_ID || "",
 } as const;

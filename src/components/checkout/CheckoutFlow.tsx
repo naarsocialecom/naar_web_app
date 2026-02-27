@@ -13,6 +13,7 @@ import {
   getUserDetails,
 } from "@/lib/api-client";
 import { ENV } from "@/lib/env";
+import { trackPurchase } from "@/lib/pixel";
 import type { Product, ProductVariant } from "@/types/product";
 import type { Address, CheckoutEstimate } from "@/types/api";
 
@@ -325,6 +326,13 @@ export default function CheckoutFlow({
         },
         handler: () => {
           delete orderCacheRef.current[cacheKey];
+          trackPurchase({
+            productId: productId,
+            productName: product.title || "",
+            value: estimate.total,
+            currency: "INR",
+            quantity,
+          });
           setStep("success");
           setLoading(false);
         },

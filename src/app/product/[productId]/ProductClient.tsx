@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { Product, ProductVariant } from "@/types/product";
 import CheckoutFlow from "@/components/checkout/CheckoutFlow";
+import { trackInitiateCheckout } from "@/lib/pixel";
 
 const MAX_DESC_LENGTH = 150;
 
@@ -393,7 +394,15 @@ export default function ProductClient({ product, productId, imgBase }: ProductCl
 
               <button
                 type="button"
-                onClick={() => setShowCheckout(true)}
+                onClick={() => {
+                  setShowCheckout(true);
+                  trackInitiateCheckout({
+                    productId: product._id || productId,
+                    productName: product.title || "",
+                    value: currentPrice * quantity,
+                    quantity,
+                  });
+                }}
                 disabled={maxQuantity === 0}
                 className={`inline-flex items-center justify-center w-full py-4 px-6 rounded-full font-bold text-lg tracking-[-0.035em] transition-opacity ${
                   maxQuantity === 0
