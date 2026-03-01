@@ -24,7 +24,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (phoneWithCountryCode: string, otp: string) => Promise<void>;
   logout: () => void;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<boolean | void>;
   requestOtp: (phoneWithCountryCode: string) => Promise<void>;
 }
 
@@ -59,29 +59,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = useCallback(async (): Promise<boolean> => {
     try {
       const { getUserDetails } = await import("@/lib/api-client");
       const res = await getUserDetails();
       if (res?.data?.userId) {
         setUser(res.data as UserDetails);
-      } else {
-        setUser(null);
+        return true;
       }
+      setUser(null);
+      return false;
     } catch {
       setUser(null);
+      return false;
     }
   }, []);
 
   const login = useCallback(
     async (phoneWithCountryCode: string, otp: string) => {
-      const { verifyOtp } = await import("@/lib/api-client");
+      const { verifyOtp, linkDeviceToUser } = await import("@/lib/api-client");
       const res = await verifyOtp(phoneWithCountryCode, otp);
       if (!res?.token) throw new Error("Invalid response");
       setLoginPhone(phoneWithCountryCode);
       await signInWithToken(res.token);
       await persistToken();
-      await refreshUser();
+      const hasUser = await refreshUser();
+      if (hasUser) linkDeviceToUser().catch(() => {});
     },
     [persistToken, refreshUser]
   );

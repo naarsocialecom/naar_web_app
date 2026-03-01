@@ -1,4 +1,6 @@
 import { ENV } from "./env";
+import { NAAR_HEADERS } from "./api-headers";
+import type { Product } from "@/types/product";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -25,7 +27,8 @@ export async function apiClient<T = unknown>(
   path: string,
   body?: unknown,
   auth = false,
-  commerce = true
+  commerce = true,
+  init?: RequestInit
 ): Promise<T> {
   const baseUrl =
     path.startsWith("/api/") ? "" : commerce ? ENV.API_URL_COMMERCIAL : ENV.API_URL_SOCIAL;
@@ -33,6 +36,7 @@ export async function apiClient<T = unknown>(
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...NAAR_HEADERS,
   };
 
   if (auth) {
@@ -47,6 +51,7 @@ export async function apiClient<T = unknown>(
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
+    ...init,
   });
 
   if (!res.ok) {
@@ -85,7 +90,7 @@ export async function getUserDetails(): Promise<{ data?: { userId: string; [key:
   return apiClient("GET", "/api/auth/userDetails", undefined, true, true);
 }
 
-export async function createUser(data: { name: string }): Promise<unknown> {
+export async function createUser(data: { name: string; onboarding?: Record<string, string>; deviceId?: string }): Promise<unknown> {
   return apiClient("POST", "/api/auth/userDetails", data, true, true);
 }
 
@@ -139,4 +144,50 @@ export async function createOrder(quoteId: string): Promise<{
 
 export async function cancelOrder(orderId: string): Promise<void> {
   await apiClient("PUT", `/api/order/${orderId}/cancel`, undefined, true, true);
+}
+
+export async function getProduct(productId: string): Promise<Product> {
+  return apiClient<Product>(
+    "GET",
+    `/products/${productId}`,
+    undefined,
+    false,
+    true,
+    { next: { revalidate: 60 } }
+  );
+}
+
+export async function geocodeSearch(query: string): Promise<{ results: Array<{ lat: number; lon: number; display_name: string }> }> {
+  return apiClient("GET", `/api/geocode/search?q=${encodeURIComponent(query)}`, undefined, false, true);
+}
+
+export async function geocodeReverse(lat: number, lon: number): Promise<{ city: string; state: string; pincode: string; area: string }> {
+  return apiClient("GET", `/api/geocode/reverse?lat=${lat}&lng=${lon}`, undefined, false, true);
+}
+
+export async function linkClick(body: { link: string; deviceId: string; platform: string; campaignInfo?: Record<string, string> }, auth: boolean): Promise<void> {
+  await apiClient("POST", "/api/linkClick", body, auth, true);
+}
+
+export async function logLinkClick(referrer?: string): Promise<void> {
+  const { getCampaignFromURL, hasCampaignInfo, getDeviceId } = await import("@/lib/campaign");
+  const campaign = getCampaignFromURL(referrer);
+  if (!hasCampaignInfo(campaign)) return;
+  const info = { ...campaign };
+  delete info.platform;
+  const link = referrer && referrer.startsWith("http") ? referrer : (typeof window !== "undefined" ? window.location.href : "");
+  const token = await getAuthToken();
+  try {
+    await linkClick(
+      { link, deviceId: getDeviceId(), platform: "web", campaignInfo: info },
+      !!token?.replace(/^Bearer\s+/i, "").trim()
+    );
+  } catch {}
+}
+
+export async function linkDeviceToUser(): Promise<void> {
+  const { getDeviceId } = await import("@/lib/campaign");
+  try {
+    await linkClick({ link: "", deviceId: getDeviceId(), platform: "web" }, true);
+  } catch {}
 }

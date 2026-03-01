@@ -176,11 +176,11 @@ export default function CheckoutFlow({
         const res = await getUserDetails();
         if (res?.data?.userId) {
           await refreshUser();
+          fetchAddresses();
         }
       } catch {
       }
       setStep("address");
-      fetchAddresses();
     },
     [refreshUser, fetchAddresses]
   );
@@ -503,7 +503,7 @@ export default function CheckoutFlow({
         userPhone={userPhone}
         hasUserRecord={!!user?.userId}
         userName={user?.name || user?.userName}
-        onUserCreated={refreshUser}
+        onUserCreated={async () => { await refreshUser(); }}
         onAddressCreated={(addr: Address) => {
           setAddresses((a) => [addr, ...a]);
           setSelectedAddress(addr);

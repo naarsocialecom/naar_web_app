@@ -1,5 +1,6 @@
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
+import CampaignInit from '@/components/CampaignInit';
 import { ENV } from '@/lib/env';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -49,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <span className="mx-6">• Install App • INR 200 OFF</span>
           </div>
         </nav>
-        <header className="fixed top-6 left-0 right-0 z-10 bg-transparent">
+        <header className="relative z-10 bg-transparent">
           <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-center mt-6">
             <a href="https://naar.io" className="block h-8 w-auto" target="_blank" rel="noopener noreferrer">
               <img src="/logo.svg" alt="Naar" className="h-full w-auto" />
@@ -57,7 +58,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </header>
         <main>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <CampaignInit />
+            {children}
+          </AuthProvider>
         </main>
       </body>
     </html>

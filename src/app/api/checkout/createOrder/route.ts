@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ENV } from "@/lib/env";
+import { NAAR_HEADERS } from "@/lib/api-headers";
 
 function getToken(request: NextRequest): string | null {
   const auth = request.headers.get("authorization");
@@ -18,6 +19,7 @@ export async function POST(request: NextRequest) {
     headers: {
       "Content-Type": "application/json",
       Authorization: token,
+      ...NAAR_HEADERS,
     },
     body: JSON.stringify(body),
   });

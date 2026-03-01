@@ -9,18 +9,16 @@ function getToken(request: NextRequest): string | null {
 }
 
 export async function POST(request: NextRequest) {
-  const token = getToken(request);
-  if (!token) {
-    return NextResponse.json({ error: "Authorization required" }, { status: 401 });
-  }
   const body = await request.json();
-  const res = await fetch(`${ENV.API_URL_COMMERCIAL}/checkout/estimate`, {
+  const token = getToken(request);
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...NAAR_HEADERS,
+  };
+  if (token) headers["Authorization"] = token;
+  const res = await fetch(`${ENV.API_URL_SOCIAL}/linkClick`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: token,
-      ...NAAR_HEADERS,
-    },
+    headers,
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));

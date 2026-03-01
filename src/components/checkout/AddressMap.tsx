@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useJsApiLoader, GoogleMap, Marker } from "@react-google-maps/api";
 import { ENV } from "@/lib/env";
+import { geocodeSearch, geocodeReverse } from "@/lib/api-client";
 import type { Address } from "@/types/api";
 
 const DEFAULT_CENTER = { lat: 28.6139, lng: 77.209 };
@@ -16,19 +17,6 @@ interface AddressMapProps {
   onAddressCreated: (address: Address) => void;
   onBack?: () => void;
   onUserCreated?: () => Promise<void>;
-}
-
-async function searchAddress(query: string): Promise<Array<{ lat: number; lon: number; display_name: string }>> {
-  if (!query.trim()) return [];
-  const res = await fetch(`/api/geocode/search?q=${encodeURIComponent(query)}`);
-  const data = await res.json();
-  return data.results || [];
-}
-
-async function reverseGeocode(lat: number, lon: number): Promise<{ city: string; state: string; pincode: string; area: string }> {
-  const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lon}`);
-  const data = await res.json();
-  return { city: data.city || "", state: data.state || "", pincode: data.pincode || "", area: data.area || "" };
 }
 
 export default function AddressMap({
@@ -95,7 +83,7 @@ export default function AddressMap({
     if (!markerPos || !showBottomSheet) return;
     setLoading(true);
     setError("");
-    reverseGeocode(markerPos.lat, markerPos.lng)
+    geocodeReverse(markerPos.lat, markerPos.lng)
       .then(setGeoData)
       .catch(() => setGeoData({ city: "", state: "", pincode: "", area: "" }))
       .finally(() => setLoading(false));
@@ -111,7 +99,7 @@ export default function AddressMap({
     setSearching(true);
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const results = await searchAddress(searchQuery);
+        const { results = [] } = await geocodeSearch(searchQuery);
         setSearchResults(results);
         setShowSearchResults(true);
       } catch {
@@ -176,9 +164,18 @@ export default function AddressMap({
     }
     setLoading(true);
     try {
-      const { createUser, createAddress } = await import("@/lib/api-client");
+      const { createUser, createAddress, linkDeviceToUser } = await import("@/lib/api-client");
+      const { getStoredOnboardingData, getDeviceId, clearStoredOnboardingData } = await import("@/lib/campaign");
       if (showNameField && nameInput.trim()) {
-        await createUser({ name: nameInput.trim() });
+        const onboarding = getStoredOnboardingData();
+        const deviceId = getDeviceId();
+        await createUser({
+          name: nameInput.trim(),
+          ...(onboarding && { onboarding }),
+          ...(deviceId && { deviceId }),
+        });
+        clearStoredOnboardingData();
+        linkDeviceToUser().catch(() => {});
         await onUserCreated?.();
       }
       const addr = await createAddress({
