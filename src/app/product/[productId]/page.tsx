@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getProduct } from "@/lib/api";
+import { getProduct } from "@/lib/api-client";
 import { ENV } from "@/lib/env";
 import ProductClient from "./ProductClient";
 
